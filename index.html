@@ -32,7 +32,7 @@
     async function login(loginParams) {
       console.log({ loginParams })
 
-      console.log(stringToUint8Array())
+      console.log(stringToUint8Array(loginParams.savedCredentialId))
       // console.log("encoded loginParams.credentialId", CBOR.encode(
       //   loginParams.credentialId.buffer))
 
