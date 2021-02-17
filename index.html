@@ -22,8 +22,9 @@
         challenge: Uint8Array.from(
           randomStringFromServer, c => c.charCodeAt(0)),
         allowCredentials: [{
-          id: Uint8Array.from(
-            loginParams.credentialId, c => c.charCodeAt(0)),
+          id: loginParams.credentialId, 
+          // Uint8Array.from(
+          //   loginParams.credentialId, c => c.charCodeAt(0)),
           type: 'public-key',
           transports: ['usb', 'ble', 'nfc'],
         }],
