@@ -18,11 +18,14 @@
     async function login(loginParams) {
       console.log({ loginParams })
 
+      console.log("encoded loginParams.credentialId", CBOR.encode(
+        loginParams.credentialId))
+
       const publicKeyCredentialRequestOptions = {
         challenge: Uint8Array.from(
           randomStringFromServer, c => c.charCodeAt(0)),
         allowCredentials: [{
-          id: loginParams.credentialId, 
+          id: loginParams.credentialId,
           // Uint8Array.from(
           //   loginParams.credentialId, c => c.charCodeAt(0)),
           type: 'public-key',
