@@ -84,7 +84,7 @@
         },
         pubKeyCredParams: [{ alg: -7, type: "public-key" }],
         authenticatorSelection: {
-          authenticatorAttachment: "cross-platform",
+          // authenticatorAttachment: "cross-platform",
           userVerification: "discouraged",
         },
         timeout: 60000,
@@ -172,6 +172,10 @@
     // login({
     //   savedCredentialId: ```vþþÂLu´>¹q%ýpÙ=Cá+Óò}úý¦ðn.Å=ü¶ÆädrúC­w ÛêÜ(êCµ´Èº\nJ```
     // })
+
+
+    // TODO use finalResult.credential.id as the cipher from the Yubikey 
+    // And define the challenge as the initial user password 
 
   </script>
 
