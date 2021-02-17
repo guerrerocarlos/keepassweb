@@ -31,9 +31,11 @@
         timeout: 60000,
       }
 
-      const credential = await navigator.credentials.get({
+      navigator.credentials.get({
         publicKey: publicKeyCredentialRequestOptions
-      });
+      }).then(function (credential) {
+        console.log({ credential })
+      })
 
     }
 
