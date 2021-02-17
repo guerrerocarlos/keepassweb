@@ -65,7 +65,7 @@
 
       if (document.getElementById("credentialId").value.length > 0) {
         return {
-          savedCredentialId: document.getElementById("credentialId").value
+          savedCredentialId: decodeURI(document.getElementById("credentialId").value)
         }
       }
 
@@ -138,7 +138,7 @@
       console.log({ credentialId })
 
       console.log('CREDENTIAL ID:', bufferToString(credentialId))
-      document.getElementById("credentialId").value = bufferToString(credentialId)
+      document.getElementById("credentialId").value = encodeURI(bufferToString(credentialId))
       console.log(credentialId.toString())
 
       return {
