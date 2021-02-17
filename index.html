@@ -59,6 +59,10 @@
 
     async function register() {
 
+      if(document.location.search.length > 0) {
+        document.getElementById("credentialId").value = document.location.search.replace("?credentialId=", "")
+      }
+
       if (document.getElementById("credentialId").value.length > 0) {
         return {
           savedCredentialId: document.getElementById("credentialId").value
