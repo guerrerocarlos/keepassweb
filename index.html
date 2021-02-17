@@ -8,7 +8,7 @@
 
 <body>
 
-
+  <input type="text" id="credentialId"></input>
 
   <script type="module">
 
@@ -128,7 +128,7 @@
       console.log({ credentialId })
 
       console.log('CREDENTIAL ID:', bufferToString(credentialId))
-
+      document.getElementById("credentialId").value = bufferToString(credentialId)
       console.log(credentialId.toString())
 
       return {
@@ -137,18 +137,18 @@
       }
     }
 
-    // register()
-    //   .then((registeredAccount) => {
-    //     console.log({ registeredAccount })
-    //     return login(registeredAccount)
-    //   })
-    //   .then((finalResult) => {
-    //     console.log({ finalResult })
-    //   })
+    register()
+      .then((registeredAccount) => {
+        console.log({ registeredAccount })
+        return login(registeredAccount)
+      })
+      .then((finalResult) => {
+        console.log({ finalResult })
+      })
 
-    login({
-      savedCredentialId: ```vþþÂLu´>¹q%ýpÙ=Cá+Óò}úý¦ðn.Å=ü¶ÆädrúC­w ÛêÜ(êCµ´Èº\nJ```
-    })
+    // login({
+    //   savedCredentialId: ```vþþÂLu´>¹q%ýpÙ=Cá+Óò}úý¦ðn.Å=ü¶ÆädrúC­w ÛêÜ(êCµ´Èº\nJ```
+    // })
 
   </script>
 
