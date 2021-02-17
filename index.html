@@ -15,16 +15,15 @@
     const randomStringFromServer = "youmnowwhatthisis109210921"
 
 
-    async function login({
-      credentialId
-    }) {
+    async function login(loginParams) {
+      console.log({ loginParams })
 
       const publicKeyCredentialRequestOptions = {
         challenge: Uint8Array.from(
           randomStringFromServer, c => c.charCodeAt(0)),
         allowCredentials: [{
           id: Uint8Array.from(
-            credentialId, c => c.charCodeAt(0)),
+            loginParams.credentialId, c => c.charCodeAt(0)),
           type: 'public-key',
           transports: ['usb', 'ble', 'nfc'],
         }],
