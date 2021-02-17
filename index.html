@@ -64,7 +64,7 @@
         attestation: "none"
       };
 
-      const credential = navigator.credentials.create({
+      const credential = await navigator.credentials.create({
         publicKey: publicKeyCredentialCreationOptions
       })
 
@@ -113,6 +113,7 @@
         credentialId
       })
     }
+    
     register()
       .then((registeredAccount) => {
         console.log({ registeredAccount })
