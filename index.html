@@ -18,102 +18,112 @@
     function login({
       credentialId
     }) {
-
-      const publicKeyCredentialRequestOptions = {
-        challenge: Uint8Array.from(
-          randomStringFromServer, c => c.charCodeAt(0)),
-        allowCredentials: [{
-          id: Uint8Array.from(
-            credentialId, c => c.charCodeAt(0)),
-          type: 'public-key',
-          transports: ['usb', 'ble', 'nfc'],
-        }],
-        timeout: 60000,
-      }
-
-      navigator.credentials.get({
-        publicKey: publicKeyCredentialRequestOptions
-      }).then(function (credential) {
-        console.log({ credential })
+      return new Promise((success, reject) => {
+        const publicKeyCredentialRequestOptions = {
+          challenge: Uint8Array.from(
+            randomStringFromServer, c => c.charCodeAt(0)),
+          allowCredentials: [{
+            id: Uint8Array.from(
+              credentialId, c => c.charCodeAt(0)),
+            type: 'public-key',
+            transports: ['usb', 'ble', 'nfc'],
+          }],
+          timeout: 60000,
+        }
+  
+        navigator.credentials.get({
+          publicKey: publicKeyCredentialRequestOptions
+        }).then(function (credential) {
+          console.log({ credential })
+        })
       })
 
     }
 
 
     function register() {
+      return new Promise((success, reject) => {
 
-      const publicKeyCredentialCreationOptions = {
-        challenge: Uint8Array.from(
-          randomStringFromServer, c => c.charCodeAt(0)),
-        rp: {
-          name: "Duo Security",
-          id: "guerrerocarlos.github.io",
-        },
-        user: {
-          id: Uint8Array.from(
-            "UZSL85T9AFC", c => c.charCodeAt(0)),
-          name: "lee@webauthn.guide",
-          displayName: "Lee",
-        },
-        pubKeyCredParams: [{ alg: -7, type: "public-key" }],
-        authenticatorSelection: {
-          authenticatorAttachment: "cross-platform",
-          userVerification: "discouraged",
-        },
-        timeout: 60000,
-        attestation: "none"
-      };
+        const publicKeyCredentialCreationOptions = {
+          challenge: Uint8Array.from(
+            randomStringFromServer, c => c.charCodeAt(0)),
+          rp: {
+            name: "Duo Security",
+            id: "guerrerocarlos.github.io",
+          },
+          user: {
+            id: Uint8Array.from(
+              "UZSL85T9AFC", c => c.charCodeAt(0)),
+            name: "lee@webauthn.guide",
+            displayName: "Lee",
+          },
+          pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+          authenticatorSelection: {
+            authenticatorAttachment: "cross-platform",
+            userVerification: "discouraged",
+          },
+          timeout: 60000,
+          attestation: "none"
+        };
 
-      navigator.credentials.create({
-        publicKey: publicKeyCredentialCreationOptions
-      }).then(function (credential) {
-        console.log('id', credential.id)
-        console.log({ credential })
+        navigator.credentials.create({
+          publicKey: publicKeyCredentialCreationOptions
+        }).then(function (credential) {
+          console.log('id', credential.id)
+          console.log({ credential })
 
-        const utf8Decoder = new TextDecoder('utf-8');
-        const decodedClientData = utf8Decoder.decode(
-          credential.response.clientDataJSON)
+          const utf8Decoder = new TextDecoder('utf-8');
+          const decodedClientData = utf8Decoder.decode(
+            credential.response.clientDataJSON)
 
-        // parse the string as an object
-        const clientDataObj = JSON.parse(decodedClientData);
+          // parse the string as an object
+          const clientDataObj = JSON.parse(decodedClientData);
 
-        console.log({ clientDataObj })
+          console.log({ clientDataObj })
 
-        const decodedAttestationObj = CBOR.decode(
-          credential.response.attestationObject);
+          const decodedAttestationObj = CBOR.decode(
+            credential.response.attestationObject);
 
-        console.log({ decodedAttestationObj });
+          console.log({ decodedAttestationObj });
 
-        const { authData } = decodedAttestationObj;
+          const { authData } = decodedAttestationObj;
 
-        // get the length of the credential ID
-        const dataView = new DataView(
-          new ArrayBuffer(2));
-        const idLenBytes = authData.slice(53, 55);
-        idLenBytes.forEach(
-          (value, index) => dataView.setUint8(
-            index, value));
-        const credentialIdLength = dataView.getUint16();
+          // get the length of the credential ID
+          const dataView = new DataView(
+            new ArrayBuffer(2));
+          const idLenBytes = authData.slice(53, 55);
+          idLenBytes.forEach(
+            (value, index) => dataView.setUint8(
+              index, value));
+          const credentialIdLength = dataView.getUint16();
 
-        // get the credential ID
-        const credentialId = authData.slice(
-          55, 55 + credentialIdLength);
+          // get the credential ID
+          const credentialId = authData.slice(
+            55, 55 + credentialIdLength);
 
-        // get the public key object
-        const publicKeyBytes = authData.slice(
-          55 + credentialIdLength);
+          // get the public key object
+          const publicKeyBytes = authData.slice(
+            55 + credentialIdLength);
 
-        // the publicKeyBytes are encoded again as CBOR
-        const publicKeyObject = CBOR.decode(
-          publicKeyBytes.buffer);
-        console.log({ publicKeyObject })
-        console.log({ credentialId })
-        return {
-          credentialId
-        }
+          // the publicKeyBytes are encoded again as CBOR
+          const publicKeyObject = CBOR.decode(
+            publicKeyBytes.buffer);
+          console.log({ publicKeyObject })
+          console.log({ credentialId })
+          success({
+            credentialId
+          })
+        })
       })
     }
     register()
+      .then((registeredAccount) => {
+        console.log({ registeedAccount })
+        return login(registeedAccount)
+      })
+      .then((finalResult) =>{
+        console.log({finalResult})
+      })
   </script>
 
   <script>
