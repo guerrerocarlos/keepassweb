@@ -34,7 +34,7 @@
     navigator.credentials.create({
       publicKey: publicKeyCredentialCreationOptions
     }).then(function (credential) {
-      console.log(credential)
+      console.log(JSON.stringify(credential, null, 2))
     })
   </script>
 </body>
