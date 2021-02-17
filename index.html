@@ -53,9 +53,9 @@
       const decodedAttestationObj = CBOR.decode(
         credential.response.attestationObject);
 
-      console.log({ decodedAttestationObject });
+      console.log({ decodedAttestationObj });
 
-      const { authData } = decodedAttestationObject;
+      const { authData } = decodedAttestationObj;
 
       // get the length of the credential ID
       const dataView = new DataView(
