@@ -18,8 +18,8 @@
     async function login(loginParams) {
       console.log({ loginParams })
 
-      console.log("encoded loginParams.credentialId", CBOR.encode(
-        loginParams.credentialId))
+      console.log("encoded loginParams.credentialId", CBOR.decode(
+        loginParams.credentialId.buffer))
 
       const publicKeyCredentialRequestOptions = {
         challenge: Uint8Array.from(
