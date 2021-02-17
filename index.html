@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>KeePassWeb</title>
+</head>
+
+<body>
+  <script type="module">
+    const randomStringFromServer = "youmnowwhatthisis109210921"
+
+    const publicKeyCredentialCreationOptions = {
+      challenge: Uint8Array.from(
+        randomStringFromServer, c => c.charCodeAt(0)),
+      rp: {
+        name: "Duo Security",
+        id: "duosecurity.com",
+      },
+      user: {
+        id: Uint8Array.from(
+          "UZSL85T9AFC", c => c.charCodeAt(0)),
+        name: "lee@webauthn.guide",
+        displayName: "Lee",
+      },
+      pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+      authenticatorSelection: {
+        authenticatorAttachment: "cross-platform",
+      },
+      timeout: 60000,
+      attestation: "direct"
+    };
+
+    navigator.credentials.create({
+      publicKey: publicKeyCredentialCreationOptions
+    }).then(function (credential) {
+      console.log(credential)
+    })
+  </script>
+</body>
+
+</html>
