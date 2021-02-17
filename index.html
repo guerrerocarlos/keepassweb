@@ -109,11 +109,11 @@
         publicKeyBytes.buffer);
       console.log({ publicKeyObject })
       console.log({ credentialId })
-      success({
+      return {
         credentialId
-      })
+      }
     }
-    
+
     register()
       .then((registeredAccount) => {
         console.log({ registeredAccount })
