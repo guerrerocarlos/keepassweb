@@ -59,6 +59,12 @@
 
     async function register() {
 
+      if (document.getElementById("credentialId").value.length > 0) {
+        return {
+          savedCredentialId: document.getElementById("credentialId").value
+        }
+      }
+
       const publicKeyCredentialCreationOptions = {
         challenge: Uint8Array.from(
           randomStringFromServer, c => c.charCodeAt(0)),
