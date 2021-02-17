@@ -138,6 +138,9 @@
       console.log({ credentialId })
 
       console.log('CREDENTIAL ID:', bufferToString(credentialId))
+      console.log("encoded>", encodeURI(bufferToString(credentialId)))
+
+  
       document.getElementById("credentialId").value = encodeURI(bufferToString(credentialId))
       console.log(credentialId.toString())
 
