@@ -14,10 +14,25 @@
 
     const randomStringFromServer = "youmnowwhatthisis109210921"
 
+    function bufferToString(buf) {
+      return String.fromCharCode(...new Uint8Array(buf));
+      // return String.fromCharCode.apply(null, new Uint8Array(buf));
+    }
+
+    function stringToUint8Array(str) {
+      const buf = new ArrayBuffer(str.length);
+      const bufView = new Uint8Array(buf);
+      for (let i = 0, strLen = str.length; i < strLen; i++) {
+        bufView[i] = str.charCodeAt(i);
+      }
+      return bufView;
+    }
+
 
     async function login(loginParams) {
       console.log({ loginParams })
 
+      console.log(stringToUint8Array())
       // console.log("encoded loginParams.credentialId", CBOR.encode(
       //   loginParams.credentialId.buffer))
 
@@ -25,7 +40,7 @@
         challenge: Uint8Array.from(
           randomStringFromServer, c => c.charCodeAt(0)),
         allowCredentials: [{
-          id: loginParams.credentialId,
+          id: stringToUint8Array(loginParams.savedCredentialId),
           // Uint8Array.from(
           //   loginParams.credentialId, c => c.charCodeAt(0)),
           type: 'public-key',
@@ -40,9 +55,7 @@
       })
 
       return ({ credential })
-
     }
-
 
     async function register() {
 
@@ -114,10 +127,13 @@
       console.log({ publicKeyObject })
       console.log({ credentialId })
 
+      console.log('CREDENTIAL ID:', bufferToString(credentialId))
+
       console.log(credentialId.toString())
 
       return {
-        credentialId
+        credentialId,
+        savedCredentialId: bufferToString(credentialId)
       }
     }
 
