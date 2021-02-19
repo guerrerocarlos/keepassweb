@@ -42,7 +42,7 @@ async function login(credentialId) {
 async function register() {
 
   if (localStorage.getItem('yubikeyCredentialId')) {
-    return localStorage.getItem('yubikeyCredentialId')
+    return stringToUint8Array(localStorage.getItem('yubikeyCredentialId'))
   }
 
   const publicKeyCredentialCreationOptions = {
