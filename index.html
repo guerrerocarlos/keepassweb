@@ -250,13 +250,18 @@
 
     let yubikeyCredentialId = null
 
+    if (localStorage.getItem('yubikeyCredentialId')) {
+      lock.innerHTML = "🔒"
+      lock.classList.remove('unlocked');
+      lock.classList.add('locked');
+    }
+
     function addYubikey() {
 
       register()
-        .then((registeredAccount) => {
-          console.log('🔑', { registeredAccount })
-          // localStorage.setItem('yubikeyCredentialId', 
-          // yubikeyCredentialId = encodeURI(bufferToString(registeredAccount.credentialId))
+        .then((credentialId) => {
+          console.log('🔑', { credentialId })
+          localStorage.setItem('yubikeyCredentialId', credentialId)
 
           lock.innerHTML = "🔒"
           lock.classList.remove('unlocked');

@@ -41,6 +41,10 @@ async function login(credentialId) {
 
 async function register() {
 
+  if (localStorage.getItem('yubikeyCredentialId')) {
+    return localStorage.getItem('yubikeyCredentialId')
+  }
+
   const publicKeyCredentialCreationOptions = {
     challenge: Uint8Array.from(
       randomStringFromServer, c => c.charCodeAt(0)),
@@ -116,10 +120,7 @@ async function register() {
   // document.getElementById("credentialId").value = encodeURI(bufferToString(credentialId))
   console.log(credentialId.toString())
 
-  return {
-    credentialId,
-    savedCredentialId: bufferToString(credentialId)
-  }
+  return credentialId
 }
 
 window.register = register
