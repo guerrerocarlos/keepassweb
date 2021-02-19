@@ -3,7 +3,8 @@
 
 <head>
   <title>KeePassWeb</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔑</text></svg>">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔑</text></svg>">
 </head>
 <script src="./cbor.js" type="text/javascript"></script>
 <script src="./webauthn.js" type="text/javascript"></script>
@@ -72,12 +73,20 @@
   #lockButton {
     float: right;
     color: #fff;
-    border: white;
     font-size: 5em;
     border-radius: 4px;
     margin-right: 10px;
-    box-shadow: 2px 2px 9px 2px #ccc;
     text-shadow: 5px 5px 5px #bbb;
+  }
+
+  .unlocked {
+    border: 2px 2px #fff;
+    border-color: #ff5656
+  }
+
+  .locked {
+    border: 2px 2px #000;
+    border-color: #000;
   }
 
   /* @media (min-width: 600px) {
@@ -98,7 +107,7 @@
   <div class="section">
     <b>The last password you'll ever remember FOR FREE, ALWAYS:</b> <input id="password" type="password" size="20"
       maxlength="16" placeholder="password"></input>
-    <button id="lockButton">🔓</button>
+    <button id="lockButton" class="unlocked">🔓</button>
     <p id="errorMessage"></p>
   </div>
   <div class="fullheight">
@@ -125,9 +134,6 @@
       return true
     }
 
-    function bufferToString(buf) {
-      return String.fromCharCode(...new Uint8Array(buf));
-    }
 
     function errorMessage(msg) {
       document.getElementById("errorMessage").innerHTML = msg
@@ -140,6 +146,10 @@
         bufView[i] = str.charCodeAt(i);
       }
       return bufView;
+    }
+
+    function bufferToString(buf) {
+      return String.fromCharCode(...new Uint8Array(buf));
     }
 
     function generateKey() {
@@ -234,19 +244,26 @@
     plaintext.addEventListener('keydown', syncScroll, false);
 
     encrypted.addEventListener('paste', retry(pasteEvent))
-
     encrypted.addEventListener('paste', retry(pasteEvent))
 
     lock.addEventListener('click', addYubikey)
 
+    let yubikeyCredentialId = null
+
     function addYubikey() {
+
       register()
         .then((registeredAccount) => {
-          console.log({ registeredAccount })
-          return login(registeredAccount)
+          console.log('🔑', { registeredAccount })
+          // localStorage.setItem('yubikeyCredentialId', 
+          yubikeyCredentialId = encodeURI(bufferToString(registeredAccount.credentialId))
+          
+          lock.innerHTML = "🔒"
+          lock.classList.remove('unlocked');
+          lock.classList.add('locked');
+          // );
         })
     }
-
 
   </script>
 
