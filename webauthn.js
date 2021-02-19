@@ -18,6 +18,10 @@ function stringToUint8Array(str) {
 
 async function login(credentialId) {
 
+  if (localStorage.getItem('yubikeyLoggedCredentialId')) {
+    return localStorage.getItem('yubikeyLoggedCredentialId')
+  }
+
   const publicKeyCredentialRequestOptions = {
     challenge: Uint8Array.from(
       randomStringFromServer, c => c.charCodeAt(0)),

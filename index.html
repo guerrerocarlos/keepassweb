@@ -251,27 +251,30 @@
     let yubikeyCredentialId = null
 
     if (localStorage.getItem('yubikeyCredentialId')) {
-      lock.innerHTML = "🔒"
-      lock.classList.remove('unlocked');
-      lock.classList.add('locked');
+      addYubikey()
     }
 
     function addYubikey() {
-
+      lock.classList.remove('unlocked');
+      lock.classList.add('locked');
       register()
         .then((credentialId) => {
           console.log('🔑', { credentialId })
           localStorage.setItem('yubikeyCredentialId', bufferToString(credentialId))
-
           lock.innerHTML = "🔒";
-          lock.classList.remove('unlocked');
-          lock.classList.add('locked');
-
           login(credentialId).then((loggedCredentials) => {
             console.log({ loggedCredentials })
+            localStorage.setItem('yubikeyLoggedCredentialId', loggedCredentials.id)
             lock.innerHTML = "🔐"
-          })
-        })
+          }).catch(failedYubikey)
+        }).catch(failedYubikey)
+    }
+
+    function failedYubikey(err) {
+      alarm("Yubikey initialization failed", err)
+      lock.innerHTML = "🔓";
+      lock.classList.add('unlocked');
+      lock.classList.remove('locked');
     }
 
   </script>
