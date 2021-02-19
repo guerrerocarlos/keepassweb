@@ -267,7 +267,7 @@
           lock.classList.remove('unlocked');
           lock.classList.add('locked');
 
-          login(registeredAccount.credentialId).then((loggedCredentials) => {
+          login(credentialId).then((loggedCredentials) => {
             console.log({ loggedCredentials })
             lock.innerHTML = "🔐"
           })
