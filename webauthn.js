@@ -46,16 +46,6 @@ async function login(loginParams) {
 
 async function register() {
 
-  // if (document.location.search.length > 0) {
-  //   document.getElementById("credentialId").value = document.location.search.replace("?credentialId=", "")
-  // }
-
-  // if (document.getElementById("credentialId").value.length > 0) {
-  //   return {
-  //     savedCredentialId: decodeURI(document.getElementById("credentialId").value)
-  //   }
-  // }
-
   const publicKeyCredentialCreationOptions = {
     challenge: Uint8Array.from(
       randomStringFromServer, c => c.charCodeAt(0)),
