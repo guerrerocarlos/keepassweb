@@ -5,22 +5,122 @@
   <title>KeePassWeb</title>
 </head>
 <script src="./cbor.js" type="text/javascript"></script>
+<style>
+  html,
+  body {
+    height: 95%;
+    font-family: 'Courier New', monospace;
+  }
+
+  input {
+    font-family: 'Courier New', monospace;
+  }
+
+  textarea {
+    resize: none;
+  }
+
+  .section {
+    padding: 10px;
+  }
+
+  .fullheight {
+    height: 80%;
+    /* display: inline; */
+  }
+
+  .floatleft {
+    display: inline;
+    float: left;
+    height: 90%;
+    width: 50%;
+  }
+
+  #plaintext {
+    width: 90%;
+    height: 95%;
+    display: inline;
+    padding: 4%;
+    margin: 1%;
+  }
+
+  #encrypted {
+    width: 90%;
+    height: 90%;
+    display: inline;
+    font-size: 0.8em;
+    padding: 2%;
+    margin: 1%;
+  }
+
+  #password {
+    display: inline;
+  }
+
+  .padded {
+    margin: 2%;
+  }
+
+  #errorMessage {
+    color: red;
+    display: inline;
+    font-style: bold;
+  }
+
+  /* @media (min-width: 600px) {
+    #plaintext {
+      width: 60%;
+      height: 90%;
+    }
+
+    #encrypted {
+      width: 20%;
+      height: 90%;
+    }
+  } */
+
+</style>
 
 <body>
-
-  <input type="text" id="credentialId"></input>
+  <div class="section">
+    <b>The last password you'll ever remember FOR FREE, ALWAYS:</b> <input id="password" type="password" size="20"
+      maxlength="16" placeholder="password"></input>
+    <p id="errorMessage"></p>
+  </div>
+  <div class="fullheight">
+    <div class="floatleft">
+      <textarea type="text" id="plaintext"
+        placeholder="plaintext, private information that will be encrypted goes here, (for example all the passwords you normally pay a service to store for you)."></textarea>
+    </div>
+    <div class="floatleft">
+      <p id="encryptedtitle" class="padded">Encrypted text</p>
+      <textarea type="text" id="encrypted"
+        placeholder="encrypted text, copy and backup this text anywhere. To reverse the process just paste encrypted text here first."></textarea>
+    </div>
+  </div>
 
   <script type="module">
 
-    const randomStringFromServer = "youmnowwhatthisis109210921"
+    function checkPassword() {
+      errorMessage("")
+
+      if (password.value.length === 0) {
+        errorMessage("Password required")
+        return false
+      }
+      return true
+    }
 
     function bufferToString(buf) {
       return String.fromCharCode(...new Uint8Array(buf));
-      // return String.fromCharCode.apply(null, new Uint8Array(buf));
     }
 
-    function stringToUint8Array(str) {
-      const buf = new ArrayBuffer(str.length);
+    function errorMessage(msg) {
+      document.getElementById("errorMessage").innerHTML = msg
+    }
+
+    function stringToUint8Array(str, size) {
+      const buf = new ArrayBuffer(size || str.length);
       const bufView = new Uint8Array(buf);
       for (let i = 0, strLen = str.length; i < strLen; i++) {
         bufView[i] = str.charCodeAt(i);
@@ -28,154 +128,97 @@
       return bufView;
     }
 
-
-    async function login(loginParams) {
-      console.log({ loginParams })
-
-      console.log(stringToUint8Array(loginParams.savedCredentialId))
-      // console.log("encoded loginParams.credentialId", CBOR.encode(
-      //   loginParams.credentialId.buffer))
-
-      const publicKeyCredentialRequestOptions = {
-        challenge: Uint8Array.from(
-          randomStringFromServer, c => c.charCodeAt(0)),
-        allowCredentials: [{
-          id: stringToUint8Array(loginParams.savedCredentialId),
-          // Uint8Array.from(
-          //   loginParams.credentialId, c => c.charCodeAt(0)),
-          type: 'public-key',
-          transports: ['usb', 'ble', 'nfc'],
-        }],
-        userVerification: "discouraged",
-        timeout: 60000,
-      }
-
-      const credential = await navigator.credentials.get({
-        publicKey: publicKeyCredentialRequestOptions
-      })
-
-      return ({ credential })
+    function generateKey() {
+      return window.crypto.subtle.importKey(
+        "raw",
+        stringToUint8Array(password.value, 256 / 8),
+        {
+          name: "AES-CBC",
+          length: 256,
+        },
+        false,
+        ["encrypt", "decrypt"]
+      )
     }
 
-    async function register() {
+    function generateIV() {
+      return stringToUint8Array(password.value, 16)
+    }
 
-      if (document.location.search.length > 0) {
-        document.getElementById("credentialId").value = document.location.search.replace("?credentialId=", "")
-      }
+    const plaintext = document.getElementById("plaintext")
+    const encrypted = document.getElementById("encrypted")
+    const password = document.getElementById("password")
 
-      if (document.getElementById("credentialId").value.length > 0) {
-        return {
-          savedCredentialId: decodeURI(document.getElementById("credentialId").value)
+    async function decrypt(key, iv, content, destination, count = 0) {
+      if (checkPassword()) {
+        try {
+          const decryptedText = await window.crypto.subtle.decrypt({
+            name: "AES-CBC",
+            iv: await generateIV()
+          }, await generateKey(), content);
+          destination.value = bufferToString(decryptedText)
+        } catch (err) {
+          throw new Error(`Could not decrypt ${err}`)
         }
       }
+    }
 
-      const publicKeyCredentialCreationOptions = {
-        challenge: Uint8Array.from(
-          randomStringFromServer, c => c.charCodeAt(0)),
-        rp: {
-          name: "Duo Security",
-          id: "guerrerocarlos.github.io",
-        },
-        user: {
-          id: Uint8Array.from(
-            "UZSL85T9AFC", c => c.charCodeAt(0)),
-          name: "lee@webauthn.guide",
-          displayName: "Lee",
-        },
-        pubKeyCredParams: [{ alg: -7, type: "public-key" }],
-        authenticatorSelection: {
-          // authenticatorAttachment: "cross-platform",
-          userVerification: "discouraged",
-        },
-        timeout: 60000,
-        attestation: "none"
-      };
+    async function encrypt(event) {
+      if (checkPassword()) {
+        const encryptedText = await window.crypto.subtle.encrypt({
+          name: "AES-CBC",
+          iv: await generateIV()
+        }, await generateKey(), stringToUint8Array(plaintext.value));
 
-      const credential = await navigator.credentials.create({
-        publicKey: publicKeyCredentialCreationOptions
-      })
-
-      console.log('id', credential.id)
-      console.log({ credential })
-
-      const utf8Decoder = new TextDecoder('utf-8');
-      const decodedClientData = utf8Decoder.decode(
-        credential.response.clientDataJSON)
-
-      // parse the string as an object
-      const clientDataObj = JSON.parse(decodedClientData);
-
-      console.log({ clientDataObj })
-
-      const decodedAttestationObj = CBOR.decode(
-        credential.response.attestationObject);
-
-      console.log({ decodedAttestationObj });
-
-      const { authData } = decodedAttestationObj;
-
-      // get the length of the credential ID
-      const dataView = new DataView(
-        new ArrayBuffer(2));
-      const idLenBytes = authData.slice(53, 55);
-      idLenBytes.forEach(
-        (value, index) => dataView.setUint8(
-          index, value));
-      const credentialIdLength = dataView.getUint16();
-
-      // get the credential ID
-      const credentialId = authData.slice(
-        55, 55 + credentialIdLength);
-
-      // get the public key object
-      const publicKeyBytes = authData.slice(
-        55 + credentialIdLength);
-
-      // the publicKeyBytes are encoded again as CBOR
-      const publicKeyObject = CBOR.decode(
-        publicKeyBytes.buffer);
-      console.log({ publicKeyObject })
-      console.log({ credentialId })
-
-      console.log('CREDENTIAL ID:', bufferToString(credentialId))
-      console.log("encoded>", encodeURI(bufferToString(credentialId)))
-
-
-      document.getElementById("credentialId").value = encodeURI(bufferToString(credentialId))
-      console.log(credentialId.toString())
-
-      return {
-        credentialId,
-        savedCredentialId: bufferToString(credentialId)
+        encrypted.value = encodeURI(bufferToString(encryptedText))
       }
     }
 
-    register()
-      .then((registeredAccount) => {
-        console.log({ registeredAccount })
-        return login(registeredAccount)
-      })
-      .then((finalResult) => {
-        console.log({ finalResult })
+    async function retryer(fn, count = 0) {
+      try {
+        return await fn()
+      } catch (err) {
+        if (count < 3) {
+          throw err
+        } else {
+          return await retryer(fn, count + 1)
+        }
+      }
+    }
 
-        const utf8Decoder = new TextDecoder('utf-8');
-        const decodedClientData = utf8Decoder.decode(
-          finalResult.credential.response.clientDataJSON)
+    function retry(fn) {
+      return function () {
+        retryer(fn, 0).catch((err) => {
+          errorMessage(err)
+        })
+      }
+    }
 
-        // parse the string as an object
-        const clientDataObj = JSON.parse(decodedClientData);
+    async function pasteEvent() {
+      const content = stringToUint8Array(decodeURI(encrypted.value)) // stringToUint8Array(decodeURI(encrypted.value))
+      await decrypt(await generateKey(), await generateIV(), content, plaintext)
+    }
 
-        console.log({ clientDataObj })
+    function selectPasswordAction() {
+      if (plaintext.value.length > 0) {
+        encrypt()
+      } else if (encrypted.value.length > 0) {
+        retry(pasteEvent)()
+      }
+    }
 
-      })
+    function syncScroll(e) { encrypted.scrollTop = plaintext.scrollTop * 10; }
 
-    // login({
-    //   savedCredentialId: ```vþþÂLu´>¹q%ýpÙ=Cá+Óò}úý¦ðn.Å=ü¶ÆädrúC­w ÛêÜ(êCµ´Èº\nJ```
-    // })
+    plaintext.addEventListener('paste', encrypt);
+    plaintext.addEventListener('keydown', encrypt);
 
+    password.addEventListener('keydown', selectPasswordAction)
+    password.addEventListener('paste', retry(pasteEvent))
 
-    // TODO use finalResult.credential.id as the cipher from the Yubikey 
-    // And define the challenge as the initial user password 
+    plaintext.addEventListener('scroll', syncScroll, false);
+    plaintext.addEventListener('keydown', syncScroll, false);
+
+    encrypted.addEventListener('paste', retry(pasteEvent))
 
   </script>
 
