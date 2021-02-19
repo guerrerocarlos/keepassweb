@@ -19,7 +19,7 @@ function stringToUint8Array(str) {
 async function login(credentialId) {
 
   if (localStorage.getItem('yubikeyLoggedCredentialId')) {
-    return localStorage.getItem('yubikeyLoggedCredentialId')
+    return { id: localStorage.getItem('yubikeyLoggedCredentialId') }
   }
 
   const publicKeyCredentialRequestOptions = {
