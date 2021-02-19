@@ -61,7 +61,7 @@ async function register() {
       randomStringFromServer, c => c.charCodeAt(0)),
     rp: {
       name: "KeePassWeb",
-      id: "github.io",
+      id: location.host,
     },
     user: {
       id: Uint8Array.from(
