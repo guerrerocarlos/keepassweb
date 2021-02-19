@@ -256,12 +256,16 @@
         .then((registeredAccount) => {
           console.log('🔑', { registeredAccount })
           // localStorage.setItem('yubikeyCredentialId', 
-          yubikeyCredentialId = encodeURI(bufferToString(registeredAccount.credentialId))
-          
+          // yubikeyCredentialId = encodeURI(bufferToString(registeredAccount.credentialId))
+
           lock.innerHTML = "🔒"
           lock.classList.remove('unlocked');
           lock.classList.add('locked');
-          // );
+
+          login(registeredAccount.credentialId).then((loggedCredentials) => {
+            console.log({ loggedCredentials })
+            lock.innerHTML = "🔐"
+          })
         })
     }
 

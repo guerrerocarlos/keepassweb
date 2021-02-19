@@ -16,18 +16,13 @@ function stringToUint8Array(str) {
 }
 
 
-async function login(loginParams) {
-  console.log({ loginParams })
-
-  console.log(stringToUint8Array(loginParams.savedCredentialId))
-  // console.log("encoded loginParams.credentialId", CBOR.encode(
-  //   loginParams.credentialId.buffer))
+async function login(credentialId) {
 
   const publicKeyCredentialRequestOptions = {
     challenge: Uint8Array.from(
       randomStringFromServer, c => c.charCodeAt(0)),
     allowCredentials: [{
-      id: stringToUint8Array(loginParams.savedCredentialId),
+      id: credentialId,
       // Uint8Array.from(
       //   loginParams.credentialId, c => c.charCodeAt(0)),
       type: 'public-key',
@@ -41,7 +36,7 @@ async function login(loginParams) {
     publicKey: publicKeyCredentialRequestOptions
   })
 
-  return ({ credential })
+  return credential
 }
 
 async function register() {
@@ -128,6 +123,7 @@ async function register() {
 }
 
 window.register = register
+window.login = login
 
 
   // .then((finalResult) => {
