@@ -128,7 +128,7 @@ async function register() {
   console.log("encoded>", encodeURI(bufferToString(credentialId)))
 
 
-  document.getElementById("credentialId").value = encodeURI(bufferToString(credentialId))
+  // document.getElementById("credentialId").value = encodeURI(bufferToString(credentialId))
   console.log(credentialId.toString())
 
   return {
