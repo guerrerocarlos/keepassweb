@@ -165,6 +165,7 @@
         return ('0' + (byte & 0xFF).toString(16)).slice(-2);
       }).join('');
     }
+
     function toByteArray(hexString) {
       var result = [];
       for (var i = 0; i < hexString.length; i += 2) {
@@ -211,7 +212,7 @@
     }
 
     async function pasteEvent() {
-      await decrypt(await generateKey(), await generateIV(), encrypted.value, plaintext)
+      plaintext.value = bufferToString(await decrypt(await generateKey(), await generateIV(), encrypted.value))
     }
 
     function generateKey(key) {
@@ -237,7 +238,7 @@
           name: "AES-CBC",
           iv,
         }, key, parseDecrypt(content));
-        destination.value = bufferToString(decryptedText)
+        return (decryptedText)
       } catch (err) {
         throw new Error(`Could not decrypt ${err}`)
       }
@@ -249,7 +250,7 @@
         name: "AES-CBC",
         iv
       }, key, content);
-      destination.value = parseEncrypt(encryptedText)
+      return (encryptedText)
     }
 
     async function retryer(fn, count = 0) {
@@ -279,7 +280,7 @@
     async function encryptEvent() {
       if (checkPassword()) {
         if (plaintext.value.length > 0) {
-          encrypt(await generateKey(), await generateIV(), stringToUint8Array(plaintext.value), encrypted)
+          encrypted.value = parseEncrypt(await encrypt(await generateKey(), await generateIV(), stringToUint8Array(plaintext.value)))
         } else if (encrypted.value.length > 0) {
           retry(pasteEvent)()
         }
