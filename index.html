@@ -41,23 +41,25 @@
 
   #plaintext {
     width: 90%;
-    height: 95%;
+    height: 90%;
     display: inline;
-    padding: 4%;
+    padding: 2%;
     margin: 1%;
   }
 
   #encrypted {
     width: 90%;
-    height: 78%;
+    height: 90%;
     display: inline;
-    font-size: 0.8em;
+    /* font-size: 0.5em; */
     padding: 2%;
     margin: 1%;
+    color: #009c8e;
   }
 
   #password {
     display: inline;
+    padding: 10px;
   }
 
   .padded {
@@ -71,7 +73,7 @@
   }
 
   #lockButton {
-    float: right;
+    /* float: right; */
     color: #fff;
     font-size: 5em;
     border-radius: 4px;
@@ -81,12 +83,16 @@
 
   .unlocked {
     border: 2px 2px #fff;
-    border-color: #ff5656
+    border-color: #9aca3c
   }
 
   .locked {
     border: 2px 2px #000;
     border-color: #000;
+  }
+
+  .mainText {
+    margin-left: 10px;
   }
 
   /* @media (min-width: 600px) {
@@ -100,33 +106,53 @@
       height: 90%;
     }
   } */
+  .lockText {
+    font-size: 20px;
+    text-shadow: 0px 0px #000;
+    color: #9aca3c;
+  }
+
+  .yubikeyId {
+    display: inline;
+  }
 
 </style>
-
 <body>
+  // fed45d460ed0c8fdd12ece87245d0f304b87b40b862129329b6fdb5d606391c2b9c46187adf85ea3ced9cfb36fa115442290624c0ac94b01f1e32c8df516dfb2b7b46a63919b15c13ccfdb49b3d60291
+
+  // %0Fj,%C3%82%C3%B5H%C2%BDDp%C3%80%C3%992H%C3%A7%C2%B1M
   <div class="section">
-    <b>The last password you'll ever remember FOR FREE, ALWAYS:</b> <input id="password" type="password" size="20"
-      maxlength="16" placeholder="password"></input>
-    <button id="lockButton" class="unlocked">🔓</button>
+    <button id="lockButton" class="unlocked">🔓 </br>
+      <div class="lockText">Yubikey</br></div>
+  </div></button>
+
+  </div>
+  <div class="section">
+    <b class="mainText">Encryption Password:
+      <input id="password" type="password" size="20" maxlength="16" placeholder="password" value="123"></input>
+    </b>
     <p id="errorMessage"></p>
   </div>
   <div class="fullheight">
     <div class="floatleft">
-      <textarea type="text" id="plaintext"
-        placeholder="plaintext, private information that will be encrypted goes here, (for example all the passwords you normally pay a service to store for you)."></textarea>
+      <p id="encryptedtitle" class="padded">Plain text</p>
+      <textarea type="text" id="plaintext" placeholder="Write here"></textarea>
     </div>
     <div class="floatleft">
       <p id="encryptedtitle" class="padded">Encrypted text</p>
-      <textarea type="text" id="encrypted"
-        placeholder="encrypted text, copy and backup this text anywhere. To reverse the process just paste encrypted text here first."></textarea>
+      <textarea type="text" id="encrypted" placeholder="" value=""></textarea>
     </div>
   </div>
 
   <script type="module">
 
+    const plaintext = document.getElementById("plaintext")
+    const encrypted = document.getElementById("encrypted")
+    const password = document.getElementById("password")
+    const lock = document.getElementById("lockButton")
+
     function checkPassword() {
       errorMessage("")
-
       if (password.value.length === 0) {
         errorMessage("Password required")
         return false
@@ -134,11 +160,25 @@
       return true
     }
 
+    function toHexString(byteArray) {
+      return Array.prototype.map.call(byteArray, function (byte) {
+        return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+      }).join('');
+    }
+    function toByteArray(hexString) {
+      var result = [];
+      for (var i = 0; i < hexString.length; i += 2) {
+        result.push(parseInt(hexString.substr(i, 2), 16));
+      }
+      return result;
+    }
 
     function errorMessage(msg) {
       document.getElementById("errorMessage").innerHTML = msg
     }
 
+
+    // Conversors 1.0
     function stringToUint8Array(str, size) {
       const buf = new ArrayBuffer(size || str.length);
       const bufView = new Uint8Array(buf);
@@ -148,14 +188,27 @@
       return bufView;
     }
 
+
     function bufferToString(buf) {
       return String.fromCharCode(...new Uint8Array(buf));
     }
 
-    function generateKey() {
+
+    function parseEncrypt(encryptedText) {
+      // return toHexString(new Uint8Array(encryptedText))
+      return encodeURI(bufferToString(new Uint8Array(encryptedText)))
+    }
+
+    async function pasteEvent() {
+      console.log(encrypted.value, ":", decodeURI(encrypted.value))
+      const content = stringToUint8Array(decodeURI(encrypted.value))
+      await decrypt(await generateKey(), await generateIV(), content, plaintext)
+    }
+
+    function generateKey(key) {
       return window.crypto.subtle.importKey(
         "raw",
-        stringToUint8Array(password.value, 256 / 8),
+        stringToUint8Array(key || password.value, 256 / 8),
         {
           name: "AES-CBC",
           length: 256,
@@ -165,38 +218,30 @@
       )
     }
 
-    function generateIV() {
-      return stringToUint8Array(password.value, 16)
+    function generateIV(iv) {
+      return stringToUint8Array(iv || password.value, 16)
     }
-
-    const plaintext = document.getElementById("plaintext")
-    const encrypted = document.getElementById("encrypted")
-    const password = document.getElementById("password")
-    const lock = document.getElementById("lockButton")
 
     async function decrypt(key, iv, content, destination, count = 0) {
-      if (checkPassword()) {
-        try {
-          const decryptedText = await window.crypto.subtle.decrypt({
-            name: "AES-CBC",
-            iv: await generateIV()
-          }, await generateKey(), content);
-          destination.value = bufferToString(decryptedText)
-        } catch (err) {
-          throw new Error(`Could not decrypt ${err}`)
-        }
+      try {
+        const decryptedText = await window.crypto.subtle.decrypt({
+          name: "AES-CBC",
+          iv,
+        }, key, content);
+        destination.value = bufferToString(decryptedText)
+      } catch (err) {
+        throw new Error(`Could not decrypt ${err}`)
       }
     }
 
-    async function encrypt(event) {
-      if (checkPassword()) {
-        const encryptedText = await window.crypto.subtle.encrypt({
-          name: "AES-CBC",
-          iv: await generateIV()
-        }, await generateKey(), stringToUint8Array(plaintext.value));
-
-        encrypted.value = encodeURI(bufferToString(encryptedText))
-      }
+    async function encrypt(key, iv, content, destination, event) {
+      console.log({ key, iv, content })
+      const encryptedText = await window.crypto.subtle.encrypt({
+        name: "AES-CBC",
+        iv
+      }, key, content);
+      // destination.value = encodeURI(bufferToString(encryptedText))
+      destination.value = parseEncrypt(encryptedText)
     }
 
     async function retryer(fn, count = 0) {
@@ -213,37 +258,41 @@
 
     function retry(fn) {
       return function () {
-        retryer(fn, 0).catch((err) => {
-          errorMessage(err)
-        })
+        setTimeout(() => {
+          retryer(fn).catch((err) => {
+            errorMessage(err)
+          })
+        }, 100)
       }
     }
 
-    async function pasteEvent() {
-      const content = stringToUint8Array(decodeURI(encrypted.value)) // stringToUint8Array(decodeURI(encrypted.value))
-      await decrypt(await generateKey(), await generateIV(), content, plaintext)
-    }
 
-    function selectPasswordAction() {
-      if (plaintext.value.length > 0) {
-        encrypt()
-      } else if (encrypted.value.length > 0) {
-        retry(pasteEvent)()
+
+    async function encryptEvent() {
+      if (checkPassword()) {
+        if (plaintext.value.length > 0) {
+          encrypt(await generateKey(), await generateIV(), stringToUint8Array(plaintext.value), encrypted)
+        } else if (encrypted.value.length > 0) {
+          retry(pasteEvent)()
+        }
       }
     }
 
-    function syncScroll(e) { encrypted.scrollTop = plaintext.scrollTop * 10; }
+    function syncScroll(e) {
+      encrypted.scrollTop = plaintext.scrollTop * (
+        (encrypted.value.length || 0) / (plaintext.lenght || 1)
+      );
+    }
 
-    plaintext.addEventListener('paste', encrypt);
-    plaintext.addEventListener('keydown', encrypt);
+    plaintext.addEventListener('paste', encryptEvent);
+    plaintext.addEventListener('keyup', encryptEvent);
 
-    password.addEventListener('keydown', selectPasswordAction)
+    password.addEventListener('keyup', encryptEvent)
     password.addEventListener('paste', retry(pasteEvent))
 
     plaintext.addEventListener('scroll', syncScroll, false);
     plaintext.addEventListener('keydown', syncScroll, false);
 
-    encrypted.addEventListener('paste', retry(pasteEvent))
     encrypted.addEventListener('paste', retry(pasteEvent))
 
     lock.addEventListener('click', addYubikey)
@@ -255,23 +304,30 @@
     }
 
     function addYubikey() {
-      lock.classList.remove('unlocked');
-      lock.classList.add('locked');
-      register()
-        .then((credentialId) => {
-          console.log('🔑', { credentialId })
-          localStorage.setItem('yubikeyCredentialId', bufferToString(credentialId))
-          lock.innerHTML = "🔒";
-          login(credentialId).then((loggedCredentials) => {
-            console.log({ loggedCredentials })
-            localStorage.setItem('yubikeyLoggedCredentialId', loggedCredentials.id)
-            lock.innerHTML = "🔐"
+      if (lock.innerHTML === "🔐") {
+        lock.innerHTML = "🔓"
+        lock.classList.add('unlocked');
+        lock.classList.remove('locked');
+      } else {
+        lock.classList.remove('unlocked');
+        lock.classList.add('locked');
+        register()
+          .then((credentialId) => {
+            console.log('🔑', { credentialId })
+            localStorage.setItem('yubikeyCredentialId', bufferToString(credentialId))
+            lock.innerHTML = "🔒";
+            login(credentialId).then((loggedCredentials) => {
+              console.log({ loggedCredentials })
+              localStorage.setItem('yubikeyLoggedCredentialId', loggedCredentials.id)
+              lock.innerHTML = "🔐"
+            }).catch(failedYubikey)
           }).catch(failedYubikey)
-        }).catch(failedYubikey)
+      }
     }
 
     function failedYubikey(err) {
-      alarm("Yubikey initialization failed", err)
+      // alert("Yubikey initialization failed", err)
+      console.log("err", err)
       lock.innerHTML = "🔓";
       lock.classList.add('unlocked');
       lock.classList.remove('locked');
