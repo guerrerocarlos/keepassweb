@@ -188,6 +188,14 @@
       return bufView;
     }
 
+    function bufferArrayToUint8Array(str, size) {
+      const buf = new ArrayBuffer(size || str.length);
+      const bufView = new Uint8Array(buf);
+      for (let i = 0, strLen = str.length; i < strLen; i++) {
+        bufView[i] = str[i];
+      }
+      return bufView;
+    }
 
     function bufferToString(buf) {
       return String.fromCharCode(...new Uint8Array(buf));
@@ -195,14 +203,15 @@
 
 
     function parseEncrypt(encryptedText) {
-      // return toHexString(new Uint8Array(encryptedText))
-      return encodeURI(bufferToString(new Uint8Array(encryptedText)))
+      return toHexString(new Uint8Array(encryptedText))
+    }
+
+    function parseDecrypt(encriptedText) {
+      return bufferArrayToUint8Array(toByteArray(encriptedText))
     }
 
     async function pasteEvent() {
-      console.log(encrypted.value, ":", decodeURI(encrypted.value))
-      const content = stringToUint8Array(decodeURI(encrypted.value))
-      await decrypt(await generateKey(), await generateIV(), content, plaintext)
+      await decrypt(await generateKey(), await generateIV(), encrypted.value, plaintext)
     }
 
     function generateKey(key) {
@@ -227,7 +236,7 @@
         const decryptedText = await window.crypto.subtle.decrypt({
           name: "AES-CBC",
           iv,
-        }, key, content);
+        }, key, parseDecrypt(content));
         destination.value = bufferToString(decryptedText)
       } catch (err) {
         throw new Error(`Could not decrypt ${err}`)
@@ -240,7 +249,6 @@
         name: "AES-CBC",
         iv
       }, key, content);
-      // destination.value = encodeURI(bufferToString(encryptedText))
       destination.value = parseEncrypt(encryptedText)
     }
 
