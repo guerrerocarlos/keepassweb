@@ -117,10 +117,9 @@
   }
 
 </style>
-<body>
-  // fed45d460ed0c8fdd12ece87245d0f304b87b40b862129329b6fdb5d606391c2b9c46187adf85ea3ced9cfb36fa115442290624c0ac94b01f1e32c8df516dfb2b7b46a63919b15c13ccfdb49b3d60291
 
-  // %0Fj,%C3%82%C3%B5H%C2%BDDp%C3%80%C3%992H%C3%A7%C2%B1M
+<body>
+  Welcome, this is a standalone encryption using
   <div class="section">
     <button id="lockButton" class="unlocked">🔓 </br>
       <div class="lockText">Yubikey</br></div>
@@ -178,8 +177,6 @@
       document.getElementById("errorMessage").innerHTML = msg
     }
 
-
-    // Conversors 1.0
     function stringToUint8Array(str, size) {
       const buf = new ArrayBuffer(size || str.length);
       const bufView = new Uint8Array(buf);
@@ -211,14 +208,10 @@
       return bufferArrayToUint8Array(toByteArray(encriptedText))
     }
 
-    async function pasteEvent() {
-      plaintext.value = bufferToString(await decrypt(await generateKey(), await generateIV(), encrypted.value))
-    }
-
-    function generateKey(key) {
+    function generateKey() {
       return window.crypto.subtle.importKey(
         "raw",
-        stringToUint8Array(key || password.value, 256 / 8),
+        stringToUint8Array(password.value, 256 / 8),
         {
           name: "AES-CBC",
           length: 256,
@@ -228,20 +221,20 @@
       )
     }
 
-    function generateIV(iv) {
-      return stringToUint8Array(iv || password.value, 16)
+    function generateIV() {
+      return stringToUint8Array(password.value, 16)
     }
 
     async function decrypt(key, iv, content, destination, count = 0) {
-      try {
-        const decryptedText = await window.crypto.subtle.decrypt({
-          name: "AES-CBC",
-          iv,
-        }, key, parseDecrypt(content));
-        return (decryptedText)
-      } catch (err) {
-        throw new Error(`Could not decrypt ${err}`)
-      }
+      // try {
+      const decryptedText = await window.crypto.subtle.decrypt({
+        name: "AES-CBC",
+        iv,
+      }, key, (content));
+      return (decryptedText)
+      // } catch (err) {
+      // throw new Error(`Could not decrypt ${err}`)
+      // }
     }
 
     async function encrypt(key, iv, content, destination, event) {
@@ -275,21 +268,44 @@
       }
     }
 
+    let passes = 10
 
+    // async function encryptEvent() {
+    //   if (checkPassword()) {
+    //     if (plaintext.value.length > 0) {
+    //       let value = stringToUint8Array(plaintext.value)
+    //       for (var i = 0; i < passes; i++) {
+    //         value = await encrypt(await generateKey(i), await generateIV(), value)
+    //       }
+    //       encrypted.value = parseEncrypt(value)
+    //     } else if (encrypted.value.length > 0) {
+    //       retry(decryptEvent)()
+    //     }
+    //   }
+    // }
 
     async function encryptEvent() {
-      if (checkPassword()) {
-        if (plaintext.value.length > 0) {
-          encrypted.value = parseEncrypt(await encrypt(await generateKey(), await generateIV(), stringToUint8Array(plaintext.value)))
-        } else if (encrypted.value.length > 0) {
-          retry(pasteEvent)()
-        }
+      let value = stringToUint8Array(plaintext.value)
+      for (var i = 0; i < passes; i++) {
+        value = await encrypt(await generateKey(), await generateIV(), value)
       }
+      encrypted.value = parseEncrypt(value)
     }
+
+    async function decryptEvent() {
+      let value = parseDecrypt(encrypted.value)
+
+      for (var i = 0; i < passes; i++) {
+        value = await decrypt(await generateKey(), await generateIV(i), value)
+      }
+
+      plaintext.value = bufferToString(value)
+    }
+
 
     function syncScroll(e) {
       encrypted.scrollTop = plaintext.scrollTop * (
-        (encrypted.value.length || 0) / (plaintext.lenght || 1)
+        (encrypted.value.length || 0) / (plaintext.nnjlenght || 1)
       );
     }
 
@@ -297,12 +313,12 @@
     plaintext.addEventListener('keyup', encryptEvent);
 
     password.addEventListener('keyup', encryptEvent)
-    password.addEventListener('paste', retry(pasteEvent))
+    password.addEventListener('paste', retry(decryptEvent))
 
     plaintext.addEventListener('scroll', syncScroll, false);
     plaintext.addEventListener('keydown', syncScroll, false);
 
-    encrypted.addEventListener('paste', retry(pasteEvent))
+    encrypted.addEventListener('paste', retry(decryptEvent))
 
     lock.addEventListener('click', addYubikey)
 
