@@ -23,18 +23,26 @@ async function login(credentialId) {
   }
 
   const publicKeyCredentialRequestOptions = {
-    challenge: Uint8Array.from(
-      randomStringFromServer, c => c.charCodeAt(0)),
+
     allowCredentials: [{
       id: credentialId,
       // Uint8Array.from(
       //   loginParams.credentialId, c => c.charCodeAt(0)),
       type: 'public-key',
-      transports: ['usb', 'ble', 'nfc'],
+      // transports: ['usb', 'ble', 'nfc'],
     }],
+    challenge: Uint8Array.from(
+      randomStringFromServer, c => c.charCodeAt(0)),
     userVerification: "discouraged",
+    extension: {
+      txAuthSimple: ""
+    },
+    rpId: location.host.split(":")[0],
+    // authenticatorAttachment: "platform",
     timeout: 60000,
   }
+
+  console.log({ publicKeyCredentialRequestOptions })
 
   const credential = await navigator.credentials.get({
     publicKey: publicKeyCredentialRequestOptions
@@ -50,26 +58,41 @@ async function register() {
   }
 
   const publicKeyCredentialCreationOptions = {
+    attestation: "none",
+    authenticatorSelection: {
+      // authenticatorAttachment: "cross-platform",
+      // authenticatorAttachment: "platform",
+      requiredResidentKey: false,
+      userVerification: "discouraged",
+    },
     challenge: Uint8Array.from(
       randomStringFromServer, c => c.charCodeAt(0)),
     rp: {
-      name: "KeePassWeb",
-      id: location.host,
+      name: location.host.split(":")[0],
+      id: location.host.split(":")[0],
     },
     user: {
+      displayName: "Lee",
       id: Uint8Array.from(
         "UZSL85T9AFC", c => c.charCodeAt(0)),
       name: "lee@webauthn.guide",
-      displayName: "Lee",
     },
-    pubKeyCredParams: [{ alg: -7, type: "public-key" }],
-    authenticatorSelection: {
-      // authenticatorAttachment: "cross-platform",
-      userVerification: "discouraged",
-    },
+    pubKeyCredParams: [
+      { alg: -7, type: "public-key" }, // "ES256"
+      // { alg: -35, type: "public-key" },
+      // { alg: -36, type: "public-key" },
+      { alg: -257, type: "public-key" }, // "RS256"
+      // { alg: -258, type: "public-key" },
+      // { alg: -259, type: "public-key" },
+      // { alg: -37, type: "public-key" },
+      // { alg: -38, type: "public-key" },
+      // { alg: -39, type: "public-key" },
+      // { alg: -8, type: "public-key" },
+    ],
     timeout: 60000,
-    attestation: "none"
   };
+
+  console.log({ publicKeyCredentialCreationOptions })
 
   const credential = await navigator.credentials.create({
     publicKey: publicKeyCredentialCreationOptions

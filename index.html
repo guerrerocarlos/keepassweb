@@ -60,6 +60,8 @@
   #password {
     display: inline;
     padding: 10px;
+    height: 2.3em;
+    top: 0px;
   }
 
   .padded {
@@ -75,10 +77,16 @@
   #lockButton {
     /* float: right; */
     color: #fff;
-    font-size: 5em;
+    font-size: 1.8em;
     border-radius: 4px;
-    margin-right: 10px;
-    text-shadow: 5px 5px 5px #bbb;
+    /* margin-right: 10px; */
+    /* text-shadow: 5px 5px 5px #bbb; */
+  }
+
+  #lockButtonContainer {
+    display: inline;
+    padding-top: 10px;
+
   }
 
   .unlocked {
@@ -121,16 +129,19 @@
 <body>
   Welcome, this is a standalone encryption using
   <div class="section">
-    <button id="lockButton" class="unlocked">🔓 </br>
-      <div class="lockText">Yubikey</br></div>
-  </div></button>
+
 
   </div>
   <div class="section">
-    <b class="mainText">Encryption Password:
-      <input id="password" type="password" size="20" maxlength="16" placeholder="password" value="123"></input>
-    </b>
-    <p id="errorMessage"></p>
+    <div class="mainText">Encryption Password:
+      <input id="password" type="password" size="80" maxlength="80" placeholder="password" value="123"></input>
+      <div id="lockButtonContainer">
+        <button id="lockButton" class="unlocked">🔓 </br>
+          <div class="lockText">Yubikey</br></div>
+      </div></button>
+    </div>
+  </div>
+  <p id="errorMessage"></p>
   </div>
   <div class="fullheight">
     <div class="floatleft">
@@ -139,7 +150,7 @@
     </div>
     <div class="floatleft">
       <p id="encryptedtitle" class="padded">Encrypted text</p>
-      <textarea type="text" id="encrypted" placeholder="" value=""></textarea>
+      <textarea type="text" id="encrypted" placeholder="" value="" spellcheck="false"></textarea>></textarea>
     </div>
   </div>
 
@@ -208,10 +219,10 @@
       return bufferArrayToUint8Array(toByteArray(encriptedText))
     }
 
-    function generateKey() {
+    function generateKey(i) {
       return window.crypto.subtle.importKey(
         "raw",
-        stringToUint8Array(password.value, 256 / 8),
+        stringToUint8Array(password.value.slice(32 * i, 32 * (i + 1)), 256 / 8),
         {
           name: "AES-CBC",
           length: 256,
@@ -238,7 +249,6 @@
     }
 
     async function encrypt(key, iv, content, destination, event) {
-      console.log({ key, iv, content })
       const encryptedText = await window.crypto.subtle.encrypt({
         name: "AES-CBC",
         iv
@@ -285,20 +295,35 @@
     // }
 
     async function encryptEvent() {
+      let passes = password.value.length / 32
+      console.log({ passes })
       let value = stringToUint8Array(plaintext.value)
       for (var i = 0; i < passes; i++) {
-        value = await encrypt(await generateKey(), await generateIV(), value)
+        value = await encrypt(await generateKey(i), await generateIV(), value)
+        console.log('🔑', i, parseEncrypt(value))
       }
-      encrypted.value = parseEncrypt(value)
+      encrypted.value = (localStorage.getItem('yubikeyCredentialId') ? `${localStorage.getItem('yubikeyCredentialId')}:` : '') + parseEncrypt(value)
     }
 
     async function decryptEvent() {
-      let value = parseDecrypt(encrypted.value)
+      let passes = password.value.length / 32
+      console.log("decryptEvent", passes)
 
-      for (var i = 0; i < passes; i++) {
-        value = await decrypt(await generateKey(), await generateIV(i), value)
+      let encryptedValue = encrypted.value
+
+      if (encryptedValue.indexOf(":") > -1) {
+        localStorage.setItem('yubikeyCredentialId', encryptedValue.slice(0, encryptedValue.indexOf(":")))
+        localStorage.removeItem('yubikeyLoggedCredentialId')
+        encryptedValue = encryptedValue.slice(encryptedValue.indexOf(":") + 1)
+        addYubikey()
       }
 
+      let value = parseDecrypt(encryptedValue)
+      for (var i = parseInt(passes); i >= 0; i--) {
+        console.log("decrypt", i)
+        value = await decrypt(await generateKey(i), await generateIV(i), value)
+        console.log('🐣', i, bufferToString(value))
+      }
       plaintext.value = bufferToString(value)
     }
 
@@ -330,9 +355,12 @@
 
     function addYubikey() {
       if (lock.innerHTML === "🔐") {
-        lock.innerHTML = "🔓"
+        localStorage.removeItem('yubikeyCredentialId')
+        localStorage.removeItem('yubikeyLoggedCredentialId')
+        lock.innerHTML = "🔑"
         lock.classList.add('unlocked');
         lock.classList.remove('locked');
+        addYubikey()
       } else {
         lock.classList.remove('unlocked');
         lock.classList.add('locked');
@@ -345,6 +373,8 @@
               console.log({ loggedCredentials })
               localStorage.setItem('yubikeyLoggedCredentialId', loggedCredentials.id)
               lock.innerHTML = "🔐"
+              password.value = loggedCredentials.id
+              password.disabled = true
             }).catch(failedYubikey)
           }).catch(failedYubikey)
       }
@@ -353,7 +383,7 @@
     function failedYubikey(err) {
       // alert("Yubikey initialization failed", err)
       console.log("err", err)
-      lock.innerHTML = "🔓";
+      lock.innerHTML = "🔑";
       lock.classList.add('unlocked');
       lock.classList.remove('locked');
     }
