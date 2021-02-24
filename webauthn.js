@@ -19,7 +19,7 @@ function stringToArrayBuffer(str) {
   return bufView;
 }
 
-async function register(authAttach) {
+async function register(authAttach, challenge) {
   console.log("▶️ Register", authAttach)
   // if (localStorage.getItem('yubikeyCredentialId')) {
   //   return stringToArrayBuffer(localStorage.getItem('yubikeyCredentialId'))
@@ -34,7 +34,7 @@ async function register(authAttach) {
       userVerification: "discouraged",
     },
     challenge: Uint8Array.from(
-      randomStringFromServer, c => c.charCodeAt(0)),
+      challenge, c => c.charCodeAt(0)),
     rp: {
       name: location.host.split(":")[0],
       id: location.host.split(":")[0],
@@ -122,7 +122,7 @@ async function register(authAttach) {
   return credentialId
 }
 
-async function login(credentialId) {
+async function login(credentialId, challenge) {
 
   // if (localStorage.getItem('yubikeyLoggedCredentialId')) {
   //   return { id: localStorage.getItem('yubikeyLoggedCredentialId') }
@@ -138,7 +138,7 @@ async function login(credentialId) {
       // transports: ['usb', 'ble', 'nfc'],
     }],
     challenge: Uint8Array.from(
-      randomStringFromServer, c => c.charCodeAt(0)),
+      challenge, c => c.charCodeAt(0)),
     userVerification: "discouraged",
     extension: {
       txAuthSimple: ""

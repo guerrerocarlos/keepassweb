@@ -189,14 +189,14 @@
 
   <script type="module">
 
-    const state = localStorage.getItem('state') ? JSON.parse(localStorage.getItem('state')) :
-      {
-        "keys": {
-          "platform": {},
-          "cross-platform": {},
-          "password": "123"
-        }
+    let state = initState({
+      "keys": {
+        "platform": {},
+        "cross-platform": {},
+        "password": ""
       }
+    })
+    saveState()
 
     const plaintext = document.getElementById("plaintext")
     const encrypted = document.getElementById("encrypted")
@@ -209,7 +209,7 @@
     plaintext.addEventListener('paste', encryptEvent);
     plaintext.addEventListener('keyup', encryptEvent);
 
-    password.addEventListener('keyup', encryptEvent)
+    password.addEventListener('keyup', passwordChangeEvent)
     password.addEventListener('paste', retry(decryptEvent))
 
     plaintext.addEventListener('scroll', syncScroll, false);
@@ -217,8 +217,28 @@
 
     encrypted.addEventListener('paste', retry(decryptEvent))
 
+    let encryptedPaste
+    encrypted.addEventListener('keyup', () => { if (encryptedPaste) { encrypted.value = encryptedPaste } })
+
     yubikeyBtn.addEventListener('click', addYubikey.bind(null, "cross-platform"))
     touchidBtn.addEventListener('click', addYubikey.bind(null, "platform"))
+
+
+    function cryptoEvent() {
+      errorMessage("")
+      if (plaintext.value.length > 0) {
+        return encryptEvent()
+      } else {
+        return decryptEvent()
+      }
+    }
+
+    function passwordChangeEvent() {
+      state.keys = {}
+      state.keys.password = password.value
+      saveState()
+      cryptoEvent()
+    }
 
     function checkPassword() {
       errorMessage("")
@@ -336,10 +356,9 @@
       }
     }
 
-    let passes = 10
-
     async function encryptEvent() {
-      if(plaintext.value.length === 0) return 0
+
+      if (plaintext.value.length === 0) return 0
 
       let key = [state.keys.password, state.keys.platform.loggedCredentialId, state.keys["cross-platform"].loggedCredentialId].filter(Boolean).join("")
 
@@ -360,41 +379,45 @@
     }
 
     async function decryptEvent() {
-      let key = state.keys.password
-      let value = hexTouint8(encrypted.value)
+      if (encrypted.value.length > 0) {
+        encryptedPaste = encrypted.value
 
-      for (var i = parseInt(key.length / 32); i >= 0; i--) {
-        value = await decrypt(await generateKey(key, i), await generateIV(i), value)
-        console.log('🐣', i, bufferToString(value))
+        let key = state.keys.password
+        let value = hexTouint8(encrypted.value)
+
+        for (var i = parseInt(key.length / 32); i >= 0; i--) {
+          value = await decrypt(await generateKey(key, i), await generateIV(i), value)
+          console.log('🐣', i, bufferToString(value))
+        }
+
+        console.log("value", bufferToString(value))
+
+        if (bufferToString(value).indexOf("::") !== 0) {
+          return 0
+        }
+
+        value = bufferToString(value).slice(2)
+
+        key = [state.keys.password, state.keys.platform.loggedCredentialId, state.keys["cross-platform"].loggedCredentialId].filter(Boolean).join("")
+
+        console.log("🩸 value", value)
+
+        if (value.split("==")[0].length > 0 && value.split("==")[0] !== state.keys.platform.credentialId) {
+          return await addYubikey("platform", null, value.split("==")[0].split("--")[0])
+        }
+
+        let crossPlatformId = value.split("--")[0].split("==")[1]
+        if (crossPlatformId.length > 0 && crossPlatformId !== state.keys["cross-platform"].credentialId) {
+          return await addYubikey("cross-platform", null, crossPlatformId)
+        }
+
+        value = hexTouint8(value.split("--")[1])
+        for (var i = parseInt(key.length / 32); i >= 0; i--) {
+          value = await decrypt(await generateKey(key, i), await generateIV(i), value)
+          console.log('🐣', i, bufferToString(value))
+        }
+        plaintext.value = bufferToString(value)
       }
-
-      console.log("value", bufferToString(value))
-
-      if(bufferToString(value).indexOf("::") !== 0) {
-        return 0
-      }
-
-      value = bufferToString(value).slice(2)
-
-      key = [state.keys.password, state.keys.platform.loggedCredentialId, state.keys["cross-platform"].loggedCredentialId].filter(Boolean).join("")
-
-      console.log("🩸 value", value)
-
-      if (value.split("==")[0].length > 0 && value.split("==")[0] !== state.keys.platform.credentialId) {
-        await addYubikey("platform", null, value.split("==")[0].split("--")[0])
-      }
-
-      let crossPlatformId = value.split("--")[0].split("==")[1]
-      if (crossPlatformId.length > 0 && crossPlatformId !== state.keys["cross-platform"].credentialId) {
-        await addYubikey("cross-platform", null, crossPlatformId)
-      }
-      
-      value = hexTouint8(value.split("--")[1])
-      for (var i = parseInt(key.length / 32); i >= 0; i--) {
-        value = await decrypt(await generateKey(key, i), await generateIV(i), value)
-        console.log('🐣', i, bufferToString(value))
-      }
-      plaintext.value = bufferToString(value)
     }
 
 
@@ -404,16 +427,23 @@
       // );
     }
 
-    let yubikeyCredentialId = null
-
-
-    updateUI()
-
-    console.log(JSON.stringify(state, null, 2))
+    function initState(state) {
+      if (localStorage.getItem('state')) {
+        return JSON.parse(localStorage.getItem('state'))
+      }
+      return state
+    }
 
     function saveState() {
+      if (state.keys['cross-platform'] === undefined) {
+        state.keys['cross-platform'] = {}
+      }
+      if (state.keys['platform'] === undefined) {
+        state.keys['platform'] = {}
+      }
       localStorage.setItem('state', JSON.stringify(state))
-      console.log(JSON.stringify(state, null, 2))
+      updateUI()
+      return JSON.parse(localStorage.getItem('state'))
     }
 
     function updateUI() {
@@ -426,15 +456,15 @@
       console.log("addYubikey", authtype, event, setCredentialId)
       try {
         state.keys[authtype] = {}
-        const credentialId = (setCredentialId && hexTouint8(setCredentialId)) || await register(authtype)
-        const loggedCredentials = await login(credentialId)
+        const credentialId = (setCredentialId && hexTouint8(setCredentialId)) || await register(authtype, password.value)
+        const loggedCredentials = await login(credentialId, password.value)
         state.keys[authtype].credentialId = uint8ToHex(credentialId)
         state.keys[authtype].loggedCredentialId = loggedCredentials.id
       } catch (err) {
         console.log(err)
       }
       saveState()
-      updateUI()
+      cryptoEvent()
     }
 
     // Testing only:
