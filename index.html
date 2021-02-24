@@ -346,26 +346,50 @@
       let value = stringToUint8Array(plaintext.value)
       for (var i = 0; i < key.length / 32; i++) {
         value = await encrypt(await generateKey(key, i), await generateIV(), value)
-        console.log('🔑', i, uint8ToHex(value))
       }
 
-      encrypted.value = `${(state.keys.platform.credentialId) || ''}==${state.keys["cross-platform"].credentialId || ''}--${uint8ToHex(value)}`
+      value = stringToUint8Array(`::${(state.keys.platform.credentialId) || ''}==${state.keys["cross-platform"].credentialId || ''}--${uint8ToHex(value)}`)
+
+      key = state.keys.password
+
+      for (var i = 0; i < key.length / 32; i++) {
+        value = await encrypt(await generateKey(key, i), await generateIV(), value)
+      }
+
+      encrypted.value = uint8ToHex(value)
     }
 
     async function decryptEvent() {
-      let key = [state.keys.password, state.keys.platform.loggedCredentialId, state.keys["cross-platform"].loggedCredentialId].filter(Boolean).join("")
+      let key = state.keys.password
+      let value = hexTouint8(encrypted.value)
 
-      if (encrypted.value.split("==")[0].length > 0 && encrypted.value.split("==")[0] !== state.keys.platform.credentialId) {
-        await addYubikey("platform", null, encrypted.value.split("==")[0].split("--")[0])
+      for (var i = parseInt(key.length / 32); i >= 0; i--) {
+        value = await decrypt(await generateKey(key, i), await generateIV(i), value)
+        console.log('🐣', i, bufferToString(value))
       }
 
-      let crossPlatformId = encrypted.value.split("--")[0].split("==")[1]
+      console.log("value", bufferToString(value))
+
+      if(bufferToString(value).indexOf("::") !== 0) {
+        return 0
+      }
+
+      value = bufferToString(value).slice(2)
+
+      key = [state.keys.password, state.keys.platform.loggedCredentialId, state.keys["cross-platform"].loggedCredentialId].filter(Boolean).join("")
+
+      console.log("🩸 value", value)
+
+      if (value.split("==")[0].length > 0 && value.split("==")[0] !== state.keys.platform.credentialId) {
+        await addYubikey("platform", null, value.split("==")[0].split("--")[0])
+      }
+
+      let crossPlatformId = value.split("--")[0].split("==")[1]
       if (crossPlatformId.length > 0 && crossPlatformId !== state.keys["cross-platform"].credentialId) {
         await addYubikey("cross-platform", null, crossPlatformId)
       }
-
-      let value = hexTouint8(encrypted.value.split("--")[1])
-
+      
+      value = hexTouint8(value.split("--")[1])
       for (var i = parseInt(key.length / 32); i >= 0; i--) {
         value = await decrypt(await generateKey(key, i), await generateIV(i), value)
         console.log('🐣', i, bufferToString(value))
@@ -375,9 +399,9 @@
 
 
     function syncScroll(e) {
-      encrypted.scrollTop = plaintext.scrollTop * (
-        (encrypted.value.length || 0) / (plaintext.nnjlenght || 1)
-      );
+      // encrypted.scrollTop = plaintext.scrollTop * (
+      //   (encrypted.value.length || 0) / (plaintext.nnjlenght || 1)
+      // );
     }
 
     let yubikeyCredentialId = null
@@ -417,7 +441,7 @@
     // plaintext.value = "hello world"
     // encryptEvent()
 
-    // encrypted.value = "016241048c31d67aa96771f4b3aec12d872bfd101538b74826995ff1b94fca77902a==af22c0b8ef046b6961237033d638e1a99f72fad9be02aaa1a130e6b369c4aeffa8ae0ccd97ce0d3571478466ec6596fbffd889726aab21d43da5c212b7f7250f--db764c9b0680b7c789b264eb1838e30f1beb1df9d2fca1c7390ebd5962df9c72dc2e425b9c99073555e93c73516c002a78949aec7a5088a5e320cbea237843b8cdc15da9f6a5125a3a4ae2c54ac9f8ea"
+    // encrypted.value = "00d339e7e4507221f91993139744f37fabf25a6843112a5157dfb18e0ed66858610b62d8030775e7780ea5862b6b1140ba5e3e6d4d6d8d1c72c0256db855e59c2da91b9cc110ce1ffcccfaa6d552e49f5b91fef6ee17145c2f3ee3b9fa3fe3dae3c9b5753f5e2e5008ddbe158f66ad774ec363b3b3c6828dc55a4b8989e96f68a7d61493ec9e96709a8766f950e2733f137c39548e02be4d499ca00a018c47a731c10b1f53acbb1348365ce8c69f3bb14d7161616ac4db86a486ec6097c0dc82f5bd9aa9fe3e8fe8fb93064fa8b48aed99cc819003c0a5997000da40fa771993ed58e6a7d1584a1ebda341f5f8887b437b753b3bb84697a68ecc7f5af3fef21dfbf0eb4662aa71a2edd61a4527d92c9d581196259a095a19c5127b4121efba50a0ec2d23861f6c97abc67ae66748ecc73f037d8bd90abffb5095fbc1570f63d560406b12f459b9311241833dcf8e47e929fe4830335eebd8efa9fecbdd39f5a82c56b53d04602055b7f5ad1737f72d57a1d781df7f275a4a49f1dfc3180d1daabb8b641c8ee6b6df8502bc5379be0b3d"
     // decryptEvent()
 
   </script>
