@@ -124,23 +124,56 @@
     display: inline;
   }
 
+  .passwordLabel {
+    display: inline;
+  }
+
+  .button2fa {
+    height: 2em;
+    width: 100%;
+  }
+
+  .toptable tr>*:nth-child(1) {
+    width: 5%;
+  }
+
+  .toptable tr>*:nth-child(2) {
+    width: 90%;
+  }
+
 </style>
 
 <body>
-  Welcome, this is a standalone encryption using
-  <div class="section">
-
-
-  </div>
-  <div class="section">
-    <div class="mainText">Encryption Password:
-      <input id="password" type="password" size="80" maxlength="80" placeholder="password" value="123"></input>
-      <div id="lockButtonContainer">
-        <button id="lockButton" class="unlocked">🔓 </br>
-          <div class="lockText">Yubikey</br></div>
-      </div></button>
-    </div>
-  </div>
+  <table class="toptable" style="width:100%">
+    <tbody>
+      <tr>
+        <th>
+          <p class="passwordLabel">Password</p>
+          </td>
+        <td>
+          <input id="passwordInput" type="password" size="80" maxlength="80" placeholder="password required"></input>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <button id="touchIdButton" class="button2fa">Touch ID</button>
+        </td>
+        <td>
+          <input id="touchIdInput" type="text" size="80" maxlength="80" placeholder="Touch ID [Pub Key]"
+            disabled="true"></input>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <button id="yubikeyButton" class="button2fa">Yubikey</button>
+        </td>
+        <td>
+          <input id="yubikeyInput" type="text" size="80" maxlength="80" placeholder="Yubikey [Pub Key]"
+            disabled="true"></input>
+        </td>
+      </tr>
+    </tbody>
+  </table>
   <p id="errorMessage"></p>
   </div>
   <div class="fullheight">
@@ -158,8 +191,25 @@
 
     const plaintext = document.getElementById("plaintext")
     const encrypted = document.getElementById("encrypted")
-    const password = document.getElementById("password")
-    const lock = document.getElementById("lockButton")
+    const password = document.getElementById("passwordInput")
+    const yubikey = document.getElementById("yubikeyInput")
+    const yubikeyBtn = document.getElementById("yubikeyButton")
+    const touchid = document.getElementById("touchIdInput")
+    const touchidBtn = document.getElementById("touchIdButton")
+
+    plaintext.addEventListener('paste', encryptEvent);
+    plaintext.addEventListener('keyup', encryptEvent);
+
+    password.addEventListener('keyup', encryptEvent)
+    password.addEventListener('paste', retry(decryptEvent))
+
+    plaintext.addEventListener('scroll', syncScroll, false);
+    plaintext.addEventListener('keydown', syncScroll, false);
+
+    encrypted.addEventListener('paste', retry(decryptEvent))
+
+    yubikeyBtn.addEventListener('click', addYubikey.bind(null, "cross-platform"))
+    touchidBtn.addEventListener('click', addYubikey.bind(null, "platform"))
 
     function checkPassword() {
       errorMessage("")
@@ -334,58 +384,52 @@
       );
     }
 
-    plaintext.addEventListener('paste', encryptEvent);
-    plaintext.addEventListener('keyup', encryptEvent);
-
-    password.addEventListener('keyup', encryptEvent)
-    password.addEventListener('paste', retry(decryptEvent))
-
-    plaintext.addEventListener('scroll', syncScroll, false);
-    plaintext.addEventListener('keydown', syncScroll, false);
-
-    encrypted.addEventListener('paste', retry(decryptEvent))
-
-    lock.addEventListener('click', addYubikey)
-
     let yubikeyCredentialId = null
 
-    if (localStorage.getItem('yubikeyCredentialId')) {
-      addYubikey()
+    // if (localStorage.getItem('yubikeyCredentialId')) {
+    //   addYubikey()
+    // }
+
+    const state = localStorage.getItem('state') ? JSON.parse(localStorage.getItem('state')) :
+      {
+        "keys": {
+          "platform": {},
+          "cross-platform": {},
+          "password": "123"
+        }
+      }
+
+    updateUI()
+
+    console.log(JSON.stringify(state, null, 2))
+
+    function saveState() {
+      localStorage.setItem('state', JSON.stringify(state))
+      console.log(JSON.stringify(state, null, 2))
     }
 
-    function addYubikey() {
-      if (lock.innerHTML === "🔐") {
-        localStorage.removeItem('yubikeyCredentialId')
-        localStorage.removeItem('yubikeyLoggedCredentialId')
-        lock.innerHTML = "🔑"
-        lock.classList.add('unlocked');
-        lock.classList.remove('locked');
-        addYubikey()
-      } else {
-        lock.classList.remove('unlocked');
-        lock.classList.add('locked');
-        register()
-          .then((credentialId) => {
-            console.log('🔑', { credentialId })
-            localStorage.setItem('yubikeyCredentialId', bufferToString(credentialId))
-            lock.innerHTML = "🔒";
-            login(credentialId).then((loggedCredentials) => {
-              console.log({ loggedCredentials })
-              localStorage.setItem('yubikeyLoggedCredentialId', loggedCredentials.id)
-              lock.innerHTML = "🔐"
-              password.value = loggedCredentials.id
-              password.disabled = true
-            }).catch(failedYubikey)
-          }).catch(failedYubikey)
-      }
+    function updateUI() {
+      yubikeyInput.value = state.keys['cross-platform'].loggedCredentialId || ''
+      touchIdInput.value = state.keys['platform'].loggedCredentialId || ''
+      passwordInput.value = state.keys['password'] || ''
+    }
+
+    async function addYubikey(authtype) {
+      state.keys[authtype] = {}
+      const credentialId = await register(authtype)
+      state.keys[authtype].credentialId = bufferToString(credentialId)
+      const loggedCredentials = await login(credentialId)
+      state.keys[authtype].loggedCredentialId = loggedCredentials.id
+      saveState()
+      updateUI()
     }
 
     function failedYubikey(err) {
       // alert("Yubikey initialization failed", err)
       console.log("err", err)
-      lock.innerHTML = "🔑";
-      lock.classList.add('unlocked');
-      lock.classList.remove('locked');
+      // lock.innerHTML = "🔑";
+      // lock.classList.add('unlocked');
+      // lock.classList.remove('locked');
     }
 
   </script>

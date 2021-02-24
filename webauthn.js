@@ -7,6 +7,10 @@ function bufferToString(buf) {
 }
 
 function stringToUint8Array(str) {
+  return Uint8Array.from(str, c => c.charCodeAt(0))
+}
+
+function stringToArrayBuffer(str) {
   const buf = new ArrayBuffer(str.length);
   const bufView = new Uint8Array(buf);
   for (let i = 0, strLen = str.length; i < strLen; i++) {
@@ -15,47 +19,11 @@ function stringToUint8Array(str) {
   return bufView;
 }
 
-
-async function login(credentialId) {
-
-  if (localStorage.getItem('yubikeyLoggedCredentialId')) {
-    return { id: localStorage.getItem('yubikeyLoggedCredentialId') }
-  }
-
-  const publicKeyCredentialRequestOptions = {
-
-    allowCredentials: [{
-      id: credentialId,
-      // Uint8Array.from(
-      //   loginParams.credentialId, c => c.charCodeAt(0)),
-      type: 'public-key',
-      // transports: ['usb', 'ble', 'nfc'],
-    }],
-    challenge: Uint8Array.from(
-      randomStringFromServer, c => c.charCodeAt(0)),
-    userVerification: "discouraged",
-    extension: {
-      txAuthSimple: ""
-    },
-    rpId: location.host.split(":")[0],
-    // authenticatorAttachment: "platform",
-    timeout: 60000,
-  }
-
-  console.log({ publicKeyCredentialRequestOptions })
-
-  const credential = await navigator.credentials.get({
-    publicKey: publicKeyCredentialRequestOptions
-  })
-
-  return credential
-}
-
-async function register() {
-
-  if (localStorage.getItem('yubikeyCredentialId')) {
-    return stringToUint8Array(localStorage.getItem('yubikeyCredentialId'))
-  }
+async function register(authAttach) {
+  console.log("Register", authAttach)
+  // if (localStorage.getItem('yubikeyCredentialId')) {
+  //   return stringToArrayBuffer(localStorage.getItem('yubikeyCredentialId'))
+  // }
 
   const publicKeyCredentialCreationOptions = {
     attestation: "none",
@@ -72,10 +40,9 @@ async function register() {
       id: location.host.split(":")[0],
     },
     user: {
-      displayName: "Lee",
-      id: Uint8Array.from(
-        "UZSL85T9AFC", c => c.charCodeAt(0)),
-      name: "lee@webauthn.guide",
+      displayName: "",
+      id: stringToUint8Array(""),
+      name: "",
     },
     pubKeyCredParams: [
       { alg: -7, type: "public-key" }, // "ES256"
@@ -92,14 +59,20 @@ async function register() {
     timeout: 60000,
   };
 
-  console.log({ publicKeyCredentialCreationOptions })
+  if (authAttach) {
+    publicKeyCredentialCreationOptions
+      .authenticatorSelection
+      .authenticatorAttachment = authAttach
+  }
+
+  console.log(publicKeyCredentialCreationOptions
+    .authenticatorSelection, authAttach, JSON.stringify(publicKeyCredentialCreationOptions, null, 2))
 
   const credential = await navigator.credentials.create({
     publicKey: publicKeyCredentialCreationOptions
   })
 
-  console.log('id', credential.id)
-  console.log({ credential })
+  // console.log({ credential })
 
   const utf8Decoder = new TextDecoder('utf-8');
   const decodedClientData = utf8Decoder.decode(
@@ -149,6 +122,42 @@ async function register() {
 
   return credentialId
 }
+
+async function login(credentialId) {
+
+  // if (localStorage.getItem('yubikeyLoggedCredentialId')) {
+  //   return { id: localStorage.getItem('yubikeyLoggedCredentialId') }
+  // }
+
+  const publicKeyCredentialRequestOptions = {
+
+    allowCredentials: [{
+      id: credentialId,
+      // Uint8Array.from(
+      //   loginParams.credentialId, c => c.charCodeAt(0)),
+      type: 'public-key',
+      // transports: ['usb', 'ble', 'nfc'],
+    }],
+    challenge: Uint8Array.from(
+      randomStringFromServer, c => c.charCodeAt(0)),
+    userVerification: "discouraged",
+    extension: {
+      txAuthSimple: ""
+    },
+    rpId: location.host.split(":")[0],
+    // authenticatorAttachment: "platform",
+    timeout: 60000,
+  }
+
+  console.log({ publicKeyCredentialRequestOptions })
+
+  const credential = await navigator.credentials.get({
+    publicKey: publicKeyCredentialRequestOptions
+  })
+
+  return credential
+}
+
 
 window.register = register
 window.login = login
