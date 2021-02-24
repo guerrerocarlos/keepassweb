@@ -159,7 +159,7 @@
           <button id="touchIdButton" class="button2fa">Touch ID</button>
         </td>
         <td>
-          <input id="touchIdInput" type="text" size="80" maxlength="80" placeholder="Touch ID [Pub Key]"
+          <input id="touchIdInput" type="text" size="80" maxlength="80" placeholder="Touch ID Key"
             disabled="true"></input>
         </td>
       </tr>
@@ -168,7 +168,7 @@
           <button id="yubikeyButton" class="button2fa">Yubikey</button>
         </td>
         <td>
-          <input id="yubikeyInput" type="text" size="80" maxlength="80" placeholder="Yubikey [Pub Key]"
+          <input id="yubikeyInput" type="text" size="80" maxlength="80" placeholder="Yubikey Key"
             disabled="true"></input>
         </td>
       </tr>
@@ -183,11 +183,20 @@
     </div>
     <div class="floatleft">
       <p id="encryptedtitle" class="padded">Encrypted text</p>
-      <textarea type="text" id="encrypted" placeholder="" value="" spellcheck="false"></textarea>></textarea>
+      <textarea type="text" id="encrypted" placeholder="" value="" spellcheck="false"></textarea></textarea>
     </div>
   </div>
 
   <script type="module">
+
+    const state = localStorage.getItem('state') ? JSON.parse(localStorage.getItem('state')) :
+      {
+        "keys": {
+          "platform": {},
+          "cross-platform": {},
+          "password": "123"
+        }
+      }
 
     const plaintext = document.getElementById("plaintext")
     const encrypted = document.getElementById("encrypted")
@@ -261,18 +270,21 @@
     }
 
 
-    function parseEncrypt(encryptedText) {
+    function uint8ToHex(encryptedText) {
       return toHexString(new Uint8Array(encryptedText))
     }
 
-    function parseDecrypt(encriptedText) {
+    function hexTouint8(encriptedText) {
       return bufferArrayToUint8Array(toByteArray(encriptedText))
     }
 
-    function generateKey(i) {
+    function generateKey(key, i) {
+      // console.log("key1", state.keys.password)
+      // console.log("key", key)
+      // console.log("KEY", key.slice(32 * i, 32 * (i + 1)))
       return window.crypto.subtle.importKey(
         "raw",
-        stringToUint8Array(password.value.slice(32 * i, 32 * (i + 1)), 256 / 8),
+        stringToUint8Array(key.slice(32 * i, 32 * (i + 1)), 256 / 8),
         {
           name: "AES-CBC",
           length: 256,
@@ -287,15 +299,11 @@
     }
 
     async function decrypt(key, iv, content, destination, count = 0) {
-      // try {
       const decryptedText = await window.crypto.subtle.decrypt({
         name: "AES-CBC",
         iv,
       }, key, (content));
       return (decryptedText)
-      // } catch (err) {
-      // throw new Error(`Could not decrypt ${err}`)
-      // }
     }
 
     async function encrypt(key, iv, content, destination, event) {
@@ -330,48 +338,36 @@
 
     let passes = 10
 
-    // async function encryptEvent() {
-    //   if (checkPassword()) {
-    //     if (plaintext.value.length > 0) {
-    //       let value = stringToUint8Array(plaintext.value)
-    //       for (var i = 0; i < passes; i++) {
-    //         value = await encrypt(await generateKey(i), await generateIV(), value)
-    //       }
-    //       encrypted.value = parseEncrypt(value)
-    //     } else if (encrypted.value.length > 0) {
-    //       retry(decryptEvent)()
-    //     }
-    //   }
-    // }
-
     async function encryptEvent() {
-      let passes = password.value.length / 32
-      console.log({ passes })
+      if(plaintext.value.length === 0) return 0
+
+      let key = [state.keys.password, state.keys.platform.loggedCredentialId, state.keys["cross-platform"].loggedCredentialId].filter(Boolean).join("")
+
       let value = stringToUint8Array(plaintext.value)
-      for (var i = 0; i < passes; i++) {
-        value = await encrypt(await generateKey(i), await generateIV(), value)
-        console.log('🔑', i, parseEncrypt(value))
+      for (var i = 0; i < key.length / 32; i++) {
+        value = await encrypt(await generateKey(key, i), await generateIV(), value)
+        console.log('🔑', i, uint8ToHex(value))
       }
-      encrypted.value = (localStorage.getItem('yubikeyCredentialId') ? `${localStorage.getItem('yubikeyCredentialId')}:` : '') + parseEncrypt(value)
+
+      encrypted.value = `${(state.keys.platform.credentialId) || ''}==${state.keys["cross-platform"].credentialId || ''}--${uint8ToHex(value)}`
     }
 
     async function decryptEvent() {
-      let passes = password.value.length / 32
-      console.log("decryptEvent", passes)
+      let key = [state.keys.password, state.keys.platform.loggedCredentialId, state.keys["cross-platform"].loggedCredentialId].filter(Boolean).join("")
 
-      let encryptedValue = encrypted.value
-
-      if (encryptedValue.indexOf(":") > -1) {
-        localStorage.setItem('yubikeyCredentialId', encryptedValue.slice(0, encryptedValue.indexOf(":")))
-        localStorage.removeItem('yubikeyLoggedCredentialId')
-        encryptedValue = encryptedValue.slice(encryptedValue.indexOf(":") + 1)
-        addYubikey()
+      if (encrypted.value.split("==")[0].length > 0 && encrypted.value.split("==")[0] !== state.keys.platform.credentialId) {
+        await addYubikey("platform", null, encrypted.value.split("==")[0].split("--")[0])
       }
 
-      let value = parseDecrypt(encryptedValue)
-      for (var i = parseInt(passes); i >= 0; i--) {
-        console.log("decrypt", i)
-        value = await decrypt(await generateKey(i), await generateIV(i), value)
+      let crossPlatformId = encrypted.value.split("--")[0].split("==")[1]
+      if (crossPlatformId.length > 0 && crossPlatformId !== state.keys["cross-platform"].credentialId) {
+        await addYubikey("cross-platform", null, crossPlatformId)
+      }
+
+      let value = hexTouint8(encrypted.value.split("--")[1])
+
+      for (var i = parseInt(key.length / 32); i >= 0; i--) {
+        value = await decrypt(await generateKey(key, i), await generateIV(i), value)
         console.log('🐣', i, bufferToString(value))
       }
       plaintext.value = bufferToString(value)
@@ -386,18 +382,6 @@
 
     let yubikeyCredentialId = null
 
-    // if (localStorage.getItem('yubikeyCredentialId')) {
-    //   addYubikey()
-    // }
-
-    const state = localStorage.getItem('state') ? JSON.parse(localStorage.getItem('state')) :
-      {
-        "keys": {
-          "platform": {},
-          "cross-platform": {},
-          "password": "123"
-        }
-      }
 
     updateUI()
 
@@ -414,23 +398,27 @@
       passwordInput.value = state.keys['password'] || ''
     }
 
-    async function addYubikey(authtype) {
-      state.keys[authtype] = {}
-      const credentialId = await register(authtype)
-      state.keys[authtype].credentialId = bufferToString(credentialId)
-      const loggedCredentials = await login(credentialId)
-      state.keys[authtype].loggedCredentialId = loggedCredentials.id
+    async function addYubikey(authtype, event, setCredentialId) {
+      console.log("addYubikey", authtype, event, setCredentialId)
+      try {
+        state.keys[authtype] = {}
+        const credentialId = (setCredentialId && hexTouint8(setCredentialId)) || await register(authtype)
+        const loggedCredentials = await login(credentialId)
+        state.keys[authtype].credentialId = uint8ToHex(credentialId)
+        state.keys[authtype].loggedCredentialId = loggedCredentials.id
+      } catch (err) {
+        console.log(err)
+      }
       saveState()
       updateUI()
     }
 
-    function failedYubikey(err) {
-      // alert("Yubikey initialization failed", err)
-      console.log("err", err)
-      // lock.innerHTML = "🔑";
-      // lock.classList.add('unlocked');
-      // lock.classList.remove('locked');
-    }
+    // Testing only:
+    // plaintext.value = "hello world"
+    // encryptEvent()
+
+    // encrypted.value = "016241048c31d67aa96771f4b3aec12d872bfd101538b74826995ff1b94fca77902a==af22c0b8ef046b6961237033d638e1a99f72fad9be02aaa1a130e6b369c4aeffa8ae0ccd97ce0d3571478466ec6596fbffd889726aab21d43da5c212b7f7250f--db764c9b0680b7c789b264eb1838e30f1beb1df9d2fca1c7390ebd5962df9c72dc2e425b9c99073555e93c73516c002a78949aec7a5088a5e320cbea237843b8cdc15da9f6a5125a3a4ae2c54ac9f8ea"
+    // decryptEvent()
 
   </script>
 

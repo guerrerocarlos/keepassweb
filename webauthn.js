@@ -20,7 +20,7 @@ function stringToArrayBuffer(str) {
 }
 
 async function register(authAttach) {
-  console.log("Register", authAttach)
+  console.log("▶️ Register", authAttach)
   // if (localStorage.getItem('yubikeyCredentialId')) {
   //   return stringToArrayBuffer(localStorage.getItem('yubikeyCredentialId'))
   // }
@@ -65,8 +65,7 @@ async function register(authAttach) {
       .authenticatorAttachment = authAttach
   }
 
-  console.log(publicKeyCredentialCreationOptions
-    .authenticatorSelection, authAttach, JSON.stringify(publicKeyCredentialCreationOptions, null, 2))
+  console.log(JSON.stringify(publicKeyCredentialCreationOptions, null, 2))
 
   const credential = await navigator.credentials.create({
     publicKey: publicKeyCredentialCreationOptions
