@@ -1,0 +1,120 @@
+html,
+  body {
+    height: 95%;
+    font-family: 'Courier New', monospace;
+  }
+
+  input {
+    font-family: 'Courier New', monospace;
+  }
+
+  textarea {
+    resize: none;
+  }
+
+  .section {
+    padding: 10px;
+  }
+
+  .fullheight {
+    height: 80%;
+    /* display: inline; */
+  }
+
+  .floatleft {
+    display: inline;
+    float: left;
+    height: 90%;
+    width: 50%;
+  }
+
+  #plaintext {
+    width: 90%;
+    height: 90%;
+    display: inline;
+    padding: 2%;
+    margin: 1%;
+  }
+
+  #encrypted {
+    width: 90%;
+    height: 90%;
+    display: inline;
+    /* font-size: 0.5em; */
+    padding: 2%;
+    margin: 1%;
+    color: #009c8e;
+  }
+
+  #password {
+    display: inline;
+    padding: 10px;
+    height: 2.3em;
+    top: 0px;
+  }
+
+  .padded {
+    margin: 2%;
+  }
+
+  #errorMessage {
+    color: red;
+    display: inline;
+    font-style: bold;
+  }
+
+  #lockButton {
+    /* float: right; */
+    color: #fff;
+    font-size: 1.8em;
+    border-radius: 4px;
+    /* margin-right: 10px; */
+    /* text-shadow: 5px 5px 5px #bbb; */
+  }
+
+  #lockButtonContainer {
+    display: inline;
+    padding-top: 10px;
+
+  }
+
+  .unlocked {
+    border: 2px 2px #fff;
+    border-color: #9aca3c
+  }
+
+  .locked {
+    border: 2px 2px #000;
+    border-color: #000;
+  }
+
+  .mainText {
+    margin-left: 10px;
+  }
+
+  .lockText {
+    font-size: 20px;
+    text-shadow: 0px 0px #000;
+    color: #9aca3c;
+  }
+
+  .yubikeyId {
+    display: inline;
+  }
+
+  .passwordLabel {
+    display: inline;
+  }
+
+  .button2fa {
+    height: 2em;
+    width: 100%;
+  }
+
+  .toptable tr>*:nth-child(1) {
+    width: 5%;
+  }
+
+  .toptable tr>*:nth-child(2) {
+    width: 90%;
+  }

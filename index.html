@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html>
+<html dir="ltr" lang="es">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 
 <head>
   <title>KeePassWeb</title>
@@ -8,182 +11,130 @@
 </head>
 <script src="./cbor.js" type="text/javascript"></script>
 <script src="./webauthn.js" type="text/javascript"></script>
+<link rel="stylesheet" href="/styles.css">
+
 <style>
   html,
   body {
-    height: 95%;
-    font-family: 'Courier New', monospace;
+    height: 100%;
+    width: 100%;
+    margin: 0;
   }
 
-  input {
-    font-family: 'Courier New', monospace;
+  .outer {
+    display: flex;
+    flex-flow: column;
+    height: 100%;
   }
 
-  textarea {
-    resize: none;
+  .inner_fixed {
+    height: 180px;
+    background-color: #9ca8b5;
   }
 
-  .section {
-    padding: 10px;
+  .inner_remaining {
+    background-color: #f1f1f1;
+    flex-grow: 1;
   }
 
-  .fullheight {
-    height: 80%;
-    /* display: inline; */
-  }
-
-  .floatleft {
-    display: inline;
-    float: left;
-    height: 90%;
-    width: 50%;
-  }
-
-  #plaintext {
-    width: 90%;
-    height: 90%;
-    display: inline;
-    padding: 2%;
-    margin: 1%;
-  }
-
-  #encrypted {
-    width: 90%;
-    height: 90%;
-    display: inline;
-    /* font-size: 0.5em; */
-    padding: 2%;
-    margin: 1%;
-    color: #009c8e;
-  }
-
-  #password {
-    display: inline;
-    padding: 10px;
-    height: 2.3em;
-    top: 0px;
-  }
-
-  .padded {
-    margin: 2%;
-  }
-
-  #errorMessage {
-    color: red;
-    display: inline;
-    font-style: bold;
-  }
-
-  #lockButton {
-    /* float: right; */
-    color: #fff;
-    font-size: 1.8em;
-    border-radius: 4px;
-    /* margin-right: 10px; */
-    /* text-shadow: 5px 5px 5px #bbb; */
-  }
-
-  #lockButtonContainer {
-    display: inline;
-    padding-top: 10px;
-
-  }
-
-  .unlocked {
-    border: 2px 2px #fff;
-    border-color: #9aca3c
-  }
-
-  .locked {
-    border: 2px 2px #000;
-    border-color: #000;
-  }
-
-  .mainText {
-    margin-left: 10px;
-  }
-
-  /* @media (min-width: 600px) {
-    #plaintext {
-      width: 60%;
-      height: 90%;
-    }
-
-    #encrypted {
-      width: 20%;
-      height: 90%;
-    }
-  } */
-  .lockText {
-    font-size: 20px;
-    text-shadow: 0px 0px #000;
-    color: #9aca3c;
-  }
-
-  .yubikeyId {
-    display: inline;
-  }
-
-  .passwordLabel {
-    display: inline;
+  .inputMax {
+    width: 100%;
+    height: 100%;
   }
 
   .button2fa {
-    height: 2em;
     width: 100%;
   }
 
-  .toptable tr>*:nth-child(1) {
-    width: 5%;
+  .passwordLabel {
+    font-weight: 100;
+    padding: 5px;
   }
 
-  .toptable tr>*:nth-child(2) {
-    width: 90%;
+  .toptable {
+    width: 100%;
+  }
+
+  input {
+    width: 100%;
+  }
+
+  #plaintext {
+    padding: 2%;
+    font-size: 1em;
+  }
+
+  #encrypted {
+    padding: 2%;
+    font-size: 0.8em;
+  }
+
+  #errorMessage {
+    padding: 4px;
+    color: #ffbaba;
+  }
+
+  .password {
+    text-align: center;
+  }
+
+  #passwordInput {
+    /* height: 2.5em; */
+    padding: 10px;
+    font-size: 1em;
+  }
+
+  button {
+    border-radius: 5px;
+    height: 2.2em;
+  }
+  table {
+    padding: 10px;
   }
 
 </style>
 
 <body>
-  <table class="toptable" style="width:100%">
-    <tbody>
-      <tr>
-        <th>
-          <p class="passwordLabel">Password</p>
-          </td>
-        <td>
-          <input id="passwordInput" type="password" size="80" maxlength="80" placeholder="password required"></input>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <button id="touchIdButton" class="button2fa">Touch ID</button>
-        </td>
-        <td>
-          <input id="touchIdInput" type="text" size="80" maxlength="80" placeholder="Touch ID Key"
-            disabled="true"></input>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <button id="yubikeyButton" class="button2fa">Yubikey</button>
-        </td>
-        <td>
-          <input id="yubikeyInput" type="text" size="80" maxlength="80" placeholder="Yubikey Key"
-            disabled="true"></input>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-  <p id="errorMessage"></p>
-  </div>
-  <div class="fullheight">
-    <div class="floatleft">
-      <p id="encryptedtitle" class="padded">Plain text</p>
-      <textarea type="text" id="plaintext" placeholder="Write here"></textarea>
+  <div class="outer">
+    <div class="header inner_fixed">
+      <table class="toptable">
+        <tbody>
+          <tr>
+            <td>
+              <p class="password">Password:</p>
+            </td>
+            <td>
+              <input id="passwordInput" type="password" placeholder="(required)"></input>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <button id="touchIdButton" class="button2fa">Touch ID</button>
+            </td>
+            <td>
+              <input id="touchIdInput" type="text" placeholder="Touch ID Key (optional)" disabled="true"></input>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <button id="yubikeyButton" class="button2fa">Yubikey</button>
+            </td>
+            <td>
+              <input id="yubikeyInput" type="text" placeholder="Yubikey Key (optional)" disabled="true"></input>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div id="errorMessage"></div>
     </div>
-    <div class="floatleft">
-      <p id="encryptedtitle" class="padded">Encrypted text</p>
-      <textarea type="text" id="encrypted" placeholder="" value="" spellcheck="false"></textarea></textarea>
+    <div class="row inner_remaining childrenFullHeight col-100">
+      <div class="col-6 col-s-6 col-s-50 col-100 main-padding">
+        <textarea class="inputMax" type="text" id="plaintext" placeholder="Plain text"></textarea>
+      </div>
+      <div class="col-6 col-s-6 col-s-50 col-100">
+        <textarea class="inputMax" type="text" id="encrypted" placeholder="Encrypted text" value=""
+          spellcheck="false"></textarea></textarea>
+      </div>
     </div>
   </div>
 
@@ -206,29 +157,53 @@
     const touchid = document.getElementById("touchIdInput")
     const touchidBtn = document.getElementById("touchIdButton")
 
-    plaintext.addEventListener('paste', encryptEvent);
-    plaintext.addEventListener('keyup', encryptEvent);
+    plaintext.addEventListener('paste', cryptoEvent);
+    plaintext.addEventListener('keyup', cryptoEvent);
+    plaintext.addEventListener('cut', cryptoEvent);
+    plaintext.addEventListener('change', cryptoEvent);
 
     password.addEventListener('keyup', passwordChangeEvent)
     password.addEventListener('paste', retry(decryptEvent))
 
     plaintext.addEventListener('scroll', syncScroll, false);
-    plaintext.addEventListener('keydown', syncScroll, false);
 
     encrypted.addEventListener('paste', retry(decryptEvent))
+    encrypted.addEventListener('click', () => { encrypted.focus(); encrypted.select(); })
 
     let encryptedPaste
     encrypted.addEventListener('keyup', () => { if (encryptedPaste) { encrypted.value = encryptedPaste } })
 
-    yubikeyBtn.addEventListener('click', addYubikey.bind(null, "cross-platform"))
-    touchidBtn.addEventListener('click', addYubikey.bind(null, "platform"))
-
+    yubikeyBtn.addEventListener('click', () => {
+      if (state.keys["cross-platform"].loggedCredentialId) {
+        state.keys["cross-platform"] = {}
+        saveState()
+        plaintext.focus()
+        cryptoEvent()
+      } else {
+        addYubikey("cross-platform", { forceEncrypt: true })
+      }
+    })
+    touchidBtn.addEventListener('click', () => {
+      if (state.keys["platform"].loggedCredentialId) {
+        state.keys["platform"] = {}
+        saveState()
+        plaintext.focus()
+        cryptoEvent()
+      } else {
+        addYubikey("platform", { forceEncrypt: true })
+      }
+    })
 
     function cryptoEvent() {
       errorMessage("")
-      if (plaintext.value.length > 0) {
+      if (document.activeElement == plaintext) {
         return encryptEvent()
       } else {
+        if (document.activeElement == password) {
+          if (plaintext.value.length > 0) {
+            encryptEvent()
+          }
+        }
         return decryptEvent()
       }
     }
@@ -299,9 +274,6 @@
     }
 
     function generateKey(key, i) {
-      // console.log("key1", state.keys.password)
-      // console.log("key", key)
-      // console.log("KEY", key.slice(32 * i, 32 * (i + 1)))
       return window.crypto.subtle.importKey(
         "raw",
         stringToUint8Array(key.slice(32 * i, 32 * (i + 1)), 256 / 8),
@@ -318,20 +290,19 @@
       return stringToUint8Array(password.value, 16)
     }
 
-    async function decrypt(key, iv, content, destination, count = 0) {
-      const decryptedText = await window.crypto.subtle.decrypt({
+    async function crypt(action, iv, key, content) {
+      return await window.crypto.subtle[action]({
         name: "AES-CBC",
         iv,
       }, key, (content));
-      return (decryptedText)
+    }
+
+    async function decrypt(key, iv, content, destination, count = 0) {
+      return crypt('decrypt', iv, key, content)
     }
 
     async function encrypt(key, iv, content, destination, event) {
-      const encryptedText = await window.crypto.subtle.encrypt({
-        name: "AES-CBC",
-        iv
-      }, key, content);
-      return (encryptedText)
+      return crypt('encrypt', iv, key, content)
     }
 
     async function retryer(fn, count = 0) {
@@ -358,7 +329,15 @@
 
     async function encryptEvent() {
 
-      if (plaintext.value.length === 0) return 0
+      if (password.value.length === 0) {
+        encrypted.value = "Password is required to generate encrypted text"
+        return 0
+      }
+
+      if (plaintext.value.length === 0) {
+        encrypted.value = ""
+        return 0
+      }
 
       let key = [state.keys.password, state.keys.platform.loggedCredentialId, state.keys["cross-platform"].loggedCredentialId].filter(Boolean).join("")
 
@@ -376,6 +355,8 @@
       }
 
       encrypted.value = uint8ToHex(value)
+
+      syncScroll()
     }
 
     async function decryptEvent() {
@@ -422,9 +403,9 @@
 
 
     function syncScroll(e) {
-      // encrypted.scrollTop = plaintext.scrollTop * (
-      //   (encrypted.value.length || 0) / (plaintext.nnjlenght || 1)
-      // );
+      encrypted.scrollTop = plaintext.scrollTop * (
+        (encrypted.scrollHeight) / (plaintext.scrollHeight || 1) * 2
+      );
     }
 
     function initState(state) {
@@ -447,24 +428,32 @@
     }
 
     function updateUI() {
-      yubikeyInput.value = state.keys['cross-platform'].loggedCredentialId || ''
-      touchIdInput.value = state.keys['platform'].loggedCredentialId || ''
+      yubikeyInput.value = state.keys['cross-platform'].credentialId || ''
+      touchIdInput.value = state.keys['platform'].credentialId || ''
       passwordInput.value = state.keys['password'] || ''
     }
 
     async function addYubikey(authtype, event, setCredentialId) {
       console.log("addYubikey", authtype, event, setCredentialId)
       try {
-        state.keys[authtype] = {}
+        if(setCredentialId) {
+          state.keys[authtype] = {}
+        }
+
         const credentialId = (setCredentialId && hexTouint8(setCredentialId)) || await register(authtype, password.value)
         const loggedCredentials = await login(credentialId, password.value)
         state.keys[authtype].credentialId = uint8ToHex(credentialId)
         state.keys[authtype].loggedCredentialId = loggedCredentials.id
+        if (event && event.forceEncrypt) {
+          plaintext.focus()
+          encrypted.value = ""
+        }
+        cryptoEvent()
       } catch (err) {
         console.log(err)
+        encrypted.value = ""
       }
       saveState()
-      cryptoEvent()
     }
 
     // Testing only:
