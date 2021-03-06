@@ -13,87 +13,6 @@
 <script src="./webauthn.js" type="text/javascript"></script>
 <link rel="stylesheet" href="./styles.css">
 
-<style>
-  html,
-  body {
-    height: 100%;
-    width: 100%;
-    margin: 0;
-  }
-
-  .outer {
-    display: flex;
-    flex-flow: column;
-    height: 100%;
-  }
-
-  .inner_fixed {
-    height: 180px;
-    background-color: #9ca8b5;
-  }
-
-  .inner_remaining {
-    background-color: #f1f1f1;
-    flex-grow: 1;
-  }
-
-  .inputMax {
-    width: 100%;
-    height: 100%;
-  }
-
-  .button2fa {
-    width: 100%;
-  }
-
-  .passwordLabel {
-    font-weight: 100;
-    padding: 5px;
-  }
-
-  .toptable {
-    width: 100%;
-  }
-
-  input {
-    width: 100%;
-  }
-
-  #plaintext {
-    padding: 2%;
-    font-size: 1em;
-  }
-
-  #encrypted {
-    padding: 2%;
-    font-size: 0.8em;
-  }
-
-  #errorMessage {
-    padding: 4px;
-    color: #ffbaba;
-  }
-
-  .password {
-    text-align: center;
-  }
-
-  #passwordInput {
-    /* height: 2.5em; */
-    padding: 10px;
-    font-size: 1em;
-  }
-
-  button {
-    border-radius: 5px;
-    height: 2.2em;
-  }
-  table {
-    padding: 10px;
-  }
-
-</style>
-
 <body>
   <div class="outer">
     <div class="header inner_fixed">
@@ -137,6 +56,45 @@
       </div>
     </div>
   </div>
+  <div id="body-blackout" class="body-blackout hide-modal"></div>
+  <div id="popup-modal", class="popup-modal shadow hide-modal">
+    <h1>
+      KeePassWeb ☁️
+    </h1>
+    <p>Stop trusting third parties with your passwords and private keys.</p>
+    <p>
+      Encrypt all your passwords with only one password and (optionally)
+      a <i>Second Factor Authentication</i> (2FA) method (like a <a href="https://www.yubico.com/">Yubikey</a> or your
+      laptop's Fingerprint reader) to ensure
+      that nodody can decrypt it except you.
+    </p>
+
+    <p>
+      Only <b>Native Web APIs</b> used:
+    </p>
+    <ul>
+      <li>
+        <a href="https://webauthn.io/">WebAuthn.io</a>: Yubikey and Fingerprint support <a
+          href="https://caniuse.com/webauthn">(browser compatibility)</a>
+      </li>
+      <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/encrypt">SubtleCrypto</a>: <a
+          href="https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation">AES-CBC</a> Cryptography <a
+          href="https://caniuse.com/mdn-api_subtlecrypto">(browser compatibility)</a>
+      </li>
+      <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage">localStorage</a>: Everything is
+        stored only in your browser
+      </li>
+    </ul>
+    <p>
+      <b>No data is transmitted</b> and no external modules used. Everthing happens locally in your browser.
+    </p>
+    <p>
+      Source code available on <a href="https://github.com/guerrerocarlos/keepassweb">Github.com</a>
+    </p>
+    <button id="modal-close-button" class="modal-close-button">Close</button>
+  </div>
 
   <script type="module">
 
@@ -145,9 +103,35 @@
         "platform": {},
         "cross-platform": {},
         "password": ""
+      },
+      modal: {
+        show: true 
       }
     })
+
+    let modal = document.getElementById('popup-modal')
+    let blackout = document.getElementById('body-blackout')
+    let modalCloseButton = document.getElementById('modal-close-button')
+
+    function switchModal(event) {
+      if(state.modal.show) {
+        modal.classList.toggle('hide-modal')
+        blackout.classList.toggle('hide-modal')
+      }
+      if(event) {
+        state.modal.show = false
+        saveState()
+      }
+    }
+
+    switchModal()
+
+    console.log({modalCloseButton})
+    modalCloseButton.addEventListener('click', switchModal)
+
     saveState()
+
+    let clog = function () { }
 
     const plaintext = document.getElementById("plaintext")
     const encrypted = document.getElementById("encrypted")
@@ -368,10 +352,10 @@
 
         for (var i = parseInt(key.length / 32); i >= 0; i--) {
           value = await decrypt(await generateKey(key, i), await generateIV(i), value)
-          console.log('🐣', i, bufferToString(value))
+          clog('🐣', i, bufferToString(value))
         }
 
-        console.log("value", bufferToString(value))
+        clog("value", bufferToString(value))
 
         if (bufferToString(value).indexOf("::") !== 0) {
           return 0
@@ -381,7 +365,7 @@
 
         key = [state.keys.password, state.keys.platform.loggedCredentialId, state.keys["cross-platform"].loggedCredentialId].filter(Boolean).join("")
 
-        console.log("🩸 value", value)
+        clog("🩸 value", value)
 
         if (value.split("==")[0].length > 0 && value.split("==")[0] !== state.keys.platform.credentialId) {
           return await addYubikey("platform", null, value.split("==")[0].split("--")[0])
@@ -395,7 +379,7 @@
         value = hexTouint8(value.split("--")[1])
         for (var i = parseInt(key.length / 32); i >= 0; i--) {
           value = await decrypt(await generateKey(key, i), await generateIV(i), value)
-          console.log('🐣', i, bufferToString(value))
+          clog('🐣', i, bufferToString(value))
         }
         plaintext.value = bufferToString(value)
       }
@@ -434,9 +418,9 @@
     }
 
     async function addYubikey(authtype, event, setCredentialId) {
-      console.log("addYubikey", authtype, event, setCredentialId)
+      clog("addYubikey", authtype, event, setCredentialId)
       try {
-        if(setCredentialId) {
+        if (setCredentialId) {
           state.keys[authtype] = {}
         }
 
@@ -450,7 +434,7 @@
         }
         cryptoEvent()
       } catch (err) {
-        console.log(err)
+        clog(err)
         encrypted.value = ""
       }
       saveState()
