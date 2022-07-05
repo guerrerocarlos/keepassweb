@@ -79,9 +79,15 @@ async function main() {
   document.getElementById("pub").innerText = pair.pub;
   document.getElementById("content").innerText = "Hello World";
 
+  if(document.location.hash) {
+    document.getElementById("ciphertext").value = document.location.hash.replace("#", "")
+    decrypt()
+  }
+
 }
 
 let ciphertext
+let readableCiphertext
 
 async function encrypt() {
 
@@ -109,15 +115,18 @@ async function encrypt() {
 
   console.log("END");
 
-  console.log("ciphertext", ciphertext);
+  console.log("ciphertext", typeof ciphertext, ciphertext);
 
-  let readableCiphertext = await base64Arraybuffer(
-    new Uint8Array(ciphertext).buffer
-  );
+  readableCiphertext = stringify(new Uint8Array(ciphertext), base64Encoding) // btoa(ciphertext.toString()) 
+  // await base64Arraybuffer(
+  //   new Uint8Array(ciphertext).buffer
+  // );
 
+  
   console.log("readableCiphertext", readableCiphertext);
-
-  document.getElementById("ciphertext").innerText = readableCiphertext;
+  
+  document.getElementById("ciphertext").innerText = readableCiphertext
+  document.location.hash = readableCiphertext
 
   // if (!params.get("ciphertext")) {
   //   params.set("ciphertext", readableCiphertext);
@@ -134,16 +143,138 @@ function buf2hex(buffer) {
     .join("");
 }
 
+function base64ToBytesArr2(str) {
+  const abc = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"]; // base64 alphabet
+  let result = [];
+
+  for(let i=0; i<str.length/4; i++) {
+    let chunk = [...str.slice(4*i,4*i+4)]
+    let bin = chunk.map(x=> abc.indexOf(x).toString(2).padStart(6,0)).join(''); 
+    let bytes = bin.match(/.{1,8}/g).map(x=> +('0b'+x));
+    result.push(...bytes.slice(0,3 - (str[4*i+2]=="=") - (str[4*i+3]=="=")));
+  }
+  return result;
+}
+
+const base64Encoding = {
+  chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_',
+  bits: 6
+}
+
+function stringify(
+  data,
+  encoding,
+  opts = {}
+) {
+  const { pad = true } = opts
+  const mask = (1 << encoding.bits) - 1
+  let out = ''
+
+  let bits = 0 // Number of bits currently in the buffer
+  let buffer = 0 // Bits waiting to be written out, MSB first
+  for (let i = 0; i < data.length; ++i) {
+    // Slurp data into the buffer:
+    buffer = (buffer << 8) | (0xff & data[i])
+    bits += 8
+
+    // Write out as much as we can:
+    while (bits > encoding.bits) {
+      bits -= encoding.bits
+      out += encoding.chars[mask & (buffer >> bits)]
+    }
+  }
+
+  // Partial character:
+  if (bits) {
+    out += encoding.chars[mask & (buffer << (encoding.bits - bits))]
+  }
+
+  // Add padding characters until we hit a byte boundary:
+  if (pad) {
+    while ((out.length * encoding.bits) & 7) {
+      out += '='
+    }
+  }
+
+  return out
+}
+
+function parse(
+  string,
+  encoding,
+  opts = {}
+) {
+  // Build the character lookup table:
+  if (!encoding.codes) {
+    encoding.codes = {}
+    for (let i = 0; i < encoding.chars.length; ++i) {
+      encoding.codes[encoding.chars[i]] = i
+    }
+  }
+
+  // The string must have a whole number of bytes:
+  // if (!opts.loose && (string.length * encoding.bits) & 7) {
+  //   throw new SyntaxError('Invalid padding')
+  // }
+
+  // Count the padding bytes:
+  let end = string.length
+  while (string[end - 1] === '=') {
+    --end
+
+    // If we get a whole number of bytes, there is too much padding:
+    if (!opts.loose && !(((string.length - end) * encoding.bits) & 7)) {
+      throw new SyntaxError('Invalid padding')
+    }
+  }
+
+  // Allocate the output:
+  const out = new (opts.out ?? Uint8Array)(
+    ((end * encoding.bits) / 8) | 0
+  )
+
+  // Parse the data:
+  let bits = 0 // Number of bits currently in the buffer
+  let buffer = 0 // Bits waiting to be written out, MSB first
+  let written = 0 // Next byte to write
+  for (let i = 0; i < end; ++i) {
+    // Read one character from the string:
+    const value = encoding.codes[string[i]]
+    if (value === undefined) {
+      throw new SyntaxError('Invalid character ' + string[i])
+    }
+
+    // Append the bits to the buffer:
+    buffer = (buffer << encoding.bits) | value
+    bits += encoding.bits
+
+    // Write out some bits if the buffer has a byte's worth:
+    if (bits >= 8) {
+      bits -= 8
+      out[written++] = 0xff & (buffer >> bits)
+    }
+  }
+
+  // Verify that we have received just enough bits:
+  if (bits >= encoding.bits || 0xff & (buffer << (8 - bits))) {
+    throw new SyntaxError('Unexpected end of data')
+  }
+
+  return out
+}
+
 async function decrypt() {
   if (pair.priv) {
 
-    let cipherPayload = document.getElementById("ciphertext").innerText
+    let cipherPayload = document.getElementById("ciphertext").value
 
-    console.log("cypherPayload", cipherPayload)
+    console.log("cypherPayload1", cipherPayload)
+    console.log("cypherPayload2", readableCiphertext)
 
-    let ciphetext = btoa(cipherPayload)
+    // TODO: recover from base64
+    ciphertext = parse(cipherPayload, base64Encoding)
 
-    console.log("ciphetext", ciphetext)
+    console.log("ciphetext", ciphertext)
 
     let importedPrivKey = await window.crypto.subtle.importKey(
       "pkcs8",
@@ -168,11 +299,12 @@ async function decrypt() {
 
     let cipherresult = String.fromCharCode(...new Uint8Array(recovered));
 
-    document.getElementById("recovered").innerText = cipherresult;
+    document.getElementById("recovered").value = cipherresult;
+
   }
 }
 
 document.getElementById("content").addEventListener("keyup", encrypt)
 document.getElementById("ciphertext").addEventListener("change", decrypt)
 
-main().then(encrypt).then(decrypt)
+main()
