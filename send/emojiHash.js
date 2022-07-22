@@ -1,34 +1,44 @@
-function buf2hex(buffer) { // buffer is an ArrayBuffer
-  return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
+function buf2hex(buffer) {
+  // buffer is an ArrayBuffer
+  return Array.prototype.map
+    .call(new Uint8Array(buffer), (x) => ("00" + x.toString(16)).slice(-2))
+    .join("");
 }
 
 function emojiHash(string = undefined, hashLength = 1, fn) {
-  string = string.split("\n")[1]
-  console.log("HASHING:", string)
-  const encoder = new TextEncoder()
-  
-  return window.crypto.subtle.digest('SHA-256', encoder.encode(string))
-    .then((digest) => {
-      console.log("digest", digest)
+  string = string.split("\n")[1];
+  console.log("HASHING:", string);
+  const encoder = new TextEncoder();
 
-      const hexHash = buf2hex(new Uint8Array(digest).buffer.slice(0, 6))
-      console.log("hexHash", hexHash)
+  return window.crypto.subtle
+    .digest("SHA-256", encoder.encode(string))
+    .then((digest) => {
+      console.log("digest", digest);
+
+      const hexHash = buf2hex(new Uint8Array(digest).buffer.slice(0, 6));
+      console.log("hexHash", hexHash);
       const decimalHash = parseInt(hexHash, 16);
-      console.log("decimalHash", decimalHash, emojis.length, hashLength, Math.pow(emojis.length, hashLength))
-    
+      console.log(
+        "decimalHash",
+        decimalHash,
+        emojis.length,
+        hashLength,
+        Math.pow(emojis.length, hashLength)
+      );
+
       let emojiIndex = decimalHash % Math.pow(emojis.length, hashLength);
-    
-      let emojiString = '';
+
+      let emojiString = "";
 
       for (let ii = 0; ii < hashLength; ii++) {
         emojiString = `${emojis[emojiIndex % emojis.length]}${emojiString}`;
-        console.log(emojiIndex, emojis.length, emojiIndex % emojis.length)
+        console.log(emojiIndex, emojis.length, emojiIndex % emojis.length);
         emojiIndex = Math.floor(emojiIndex / emojis.length);
       }
 
-      console.log("emojiString", emojiString)
-      return emojiString
-  })
+      console.log("emojiString", emojiString);
+      return { emoji: emojiString, decimal: decimalHash };
+    });
 }
 
 const emojis = [
@@ -1204,5 +1214,5 @@ const emojis = [
   "🇾🇹",
   "🇿🇦",
   "🇿🇲",
-  "🇿🇼"
-]
+  "🇿🇼",
+];
