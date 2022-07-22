@@ -57,9 +57,9 @@ function arrayBufferToString(str) {
   return byteString;
 }
 
-let pair = {};
-let params = new URLSearchParams(document.location.search);
-console.log("params", params);
+// let pair = {};
+// let params = new URLSearchParams(document.location.search);
+// console.log("params", params);
 
 // document.getElementById("content").value =
 //   localStorage.getItem("plaintext") || "";
@@ -68,35 +68,35 @@ console.log("params", params);
 // textarea.setSelectionRange(end, end);
 // textarea.focus();
 
-async function main() {
-  if (!params.get("pub")) {
-    pair = await generateKeyPair();
-    params.set("pub", pair.pub);
-    document.location.search = params.toString();
-    localStorage.setItem(pair.pub, pair.priv);
-  } else {
-    pair.pub = params.get("pub");
-    pair.priv = localStorage.getItem(pair.pub);
-  }
+// async function main() {
+//   if (!params.get("pub")) {
+//     pair = await generateKeyPair();
+//     params.set("pub", pair.pub);
+//     document.location.search = params.toString();
+//     localStorage.setItem(pair.pub, pair.priv);
+//   } else {
+//     pair.pub = params.get("pub");
+//     pair.priv = localStorage.getItem(pair.pub);
+//   }
 
-  // if (params.get("ciphertext")) {
-  //   document.getElementById("ciphertext").value = params.get("ciphertext");
-  // }
+//   // if (params.get("ciphertext")) {
+//   //   document.getElementById("ciphertext").value = params.get("ciphertext");
+//   // }
 
-  console.log("pair", pair);
+//   console.log("pair", pair);
 
-  document.getElementById("priv").innerText = pair.priv;
-  document.getElementById("pub").innerText = pair.pub;
-  document.getElementById("content").innerText = "";
+//   document.getElementById("priv").innerText = pair.priv;
+//   document.getElementById("pub").innerText = pair.pub;
+//   document.getElementById("content").innerText = "";
 
-  // if (document.location.hash) {
-  //   document.getElementById("ciphertext").value =
-  //     document.location.hash.replace("#", "");
-  //   decrypt();
-  // }
+//   // if (document.location.hash) {
+//   //   document.getElementById("ciphertext").value =
+//   //     document.location.hash.replace("#", "");
+//   //   decrypt();
+//   // }
 
-  encrypt();
-}
+//   encrypt();
+// }
 
 let ciphertext;
 let readableCiphertext;

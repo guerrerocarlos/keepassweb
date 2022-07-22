@@ -1,5 +1,22 @@
-// let pair = {};
-// let params = new URLSearchParams(document.location.search);
+function flushKeys() {
+  window.localStorage.clear();
+  document.getElementById("flushResults").innerText = "All keys flushed."
+
+  let seconds = 5
+  setInterval(() => {
+    document.getElementById("flushResults").innerText = `All keys flushed. Restarting in ${seconds} seconds.`
+    seconds--
+  }, 1000)
+
+  setTimeout(() => {
+    document.location.hash = ""
+    document.location.search = ""
+  }, seconds * 1000)
+}
+
+let pair = {};
+let params = new URLSearchParams(document.location.search);
+console.log("params", params);
 
 async function main() {
   if (!params.get("pub")) {
@@ -11,17 +28,21 @@ async function main() {
     pair.pub = params.get("pub");
     pair.priv = localStorage.getItem(pair.pub);
   }
+  
 
   if(pair.priv) {
     document.getElementById("shareableUrl").href = window.location.href
     document.getElementById("shareableUrl").innerText = window.location.href
-    document.getElementById("description1").innerHTML = "1. Disposable Private Key created and stored in this browser session 🔑</br>2. You are now ready to receive information in a cryptographically secure way"
-    document.getElementById("description2").innerHTML = "3. Share the following URL with the person that will send you the information:"
-    document.getElementById("description3").innerHTML = "4. Tell that person that your ID is: 🚀⭕️💋👧🏼🔥😢🌎"
-
-    // document.getElementById("description3").innerHTML = "2. <i>Wait</i> and open the url with the secrets."
   } else {
+    document.getElementById("senderUI").classList.remove("hidden")
+    document.getElementById("receiverUI").classList.add("hidden")
     document.getElementById("secretTextarea").classList.remove("hidden")
+  }
+
+  emojids = document.getElementsByClassName("emoid")
+  let hash = await emojiHash(pair.pub, 6)
+  for(let i = 0 ; i < emojids.length ; i ++) {
+    emojids[i].innerText = hash
   }
 
   // if (params.get("ciphertext")) {
@@ -36,8 +57,11 @@ async function main() {
     let result = await decrypt(document.location.hash.replace("#", ""))
 
     if(result) {
-      document.getElementById("plaintext").value = result
-      document.getElementById("plaintext").disabled = true
+      document.getElementById("decriptedUI").classList.remove("hidden")
+      document.getElementById("receiverUI").classList.add("hidden")
+
+      document.getElementById("decripted").value = result
+      document.getElementById("decripted").disabled = true
     } else {
       console.log("Private Key not Found :(")
     }
@@ -58,13 +82,21 @@ async function main() {
 
   // encrypt();
 
-  document.getElementById("plaintext").addEventListener("keyup", async () => {
+  const encriptNow = async () => {
     let plaintext = document.getElementById("plaintext").value
     let ciphertext = await encrypt(plaintext)
     document.location.hash = ciphertext
     console.log("ENCRIPTED:", ciphertext)
     document.getElementById("shareableUrl").innerText = document.location.href
-  })
+
+    shareableUIs = document.getElementsByClassName("shareableUrl")
+    for(let i = 0 ; i < shareableUIs.length ; i ++) {
+      shareableUIs[i].innerText = document.location.href
+    }
+
+  }
+
+  document.getElementById("plaintext").addEventListener("keyup", encriptNow)
 
 
 }
