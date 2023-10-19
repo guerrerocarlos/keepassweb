@@ -26,7 +26,7 @@ async function register(authAttach, challenge) {
   // }
 
   const publicKeyCredentialCreationOptions = {
-    attestation: "none",
+    attestation: "indirect",
     authenticatorSelection: {
       // authenticatorAttachment: "cross-platform",
       // authenticatorAttachment: "platform",
