@@ -36,19 +36,19 @@ async function register(authAttach, challenge) {
     challenge: Uint8Array.from(
       challenge, c => c.charCodeAt(0)),
     rp: {
-      name: location.host.split(":")[0],
+      name: document.title,
       id: location.host.split(":")[0],
     },
     user: {
-      displayName: "",
-      id: stringToUint8Array(""),
-      name: "",
+      displayName: "KeePassWeb",
+      name: "KeePassWeb",
+      id: stringToUint8Array("KeePassWeb")
     },
     pubKeyCredParams: [
       { alg: -7, type: "public-key" }, // "ES256"
       // { alg: -35, type: "public-key" },
       // { alg: -36, type: "public-key" },
-      { alg: -257, type: "public-key" }, // "RS256"
+      { alg: -256, type: "public-key" }, // "RS256"
       // { alg: -258, type: "public-key" },
       // { alg: -259, type: "public-key" },
       // { alg: -37, type: "public-key" },
